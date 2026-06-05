@@ -1,0 +1,443 @@
+Quero implementar no meu app um sistema de análise e conversão de cores para sublimação, integrado à página de pedido do cliente. O app já existe, então não quero criar um app do zero. Quero adicionar um módulo novo dentro da página de pedido, para ajudar o designer a pegar uma imagem enviada pelo cliente e descobrir quais cores corretas usar no Corel/Pantone para que, depois da sublimação, a camisa fique o mais próxima possível da imagem de referência.
+
+Contexto do sistema:
+Eu trabalho com gráfica/sublimação de fardamentos, camisas esportivas e uniformes. O problema é que as cores que aparecem no Corel, RGB ou Pantone digital não saem iguais no tecido depois da sublimação. Geralmente ficam mais escuras, mudam saturação, mudam brilho e podem puxar para outro tom. Além disso, Dry-fit e Helanca dão resultados diferentes. Por isso, quero criar um banco de dados real com amostras escaneadas das cores sublimadas em cada tecido.
+
+Vou usar o Supabase como banco de dados, autenticação e storage.
+
+O sistema precisa funcionar com este fluxo:
+
+1. Na página de pedido do cliente, o cliente ou atendente envia uma imagem de referência.
+   Essa imagem pode ser:
+
+* camisa feita por IA;
+* mockup;
+* foto de uniforme;
+* arte pronta;
+* imagem de exemplo enviada pelo cliente.
+
+2. O sistema analisa a imagem enviada e extrai as cores principais.
+   Não quero que ele pegue todos os pixels como cores separadas, pois isso gera milhares de cores desnecessárias. O algoritmo precisa agrupar cores parecidas e retornar uma paleta organizada com as cores dominantes da imagem.
+
+O algoritmo pode usar:
+
+* K-means;
+* Median Cut;
+* Color Quantization;
+* conversão RGB para LAB;
+* comparação por Delta E / CIEDE2000.
+
+O ideal é trabalhar com LAB para comparação visual, porque LAB se aproxima mais da percepção humana do que RGB puro.
+
+3. Depois de extrair as cores principais, o sistema deve comparar cada cor encontrada com um banco de dados real de cores sublimadas.
+
+Esse banco de dados terá:
+
+* cores originais do Corel/Pantone/RGB;
+* cores escaneadas depois da sublimação no Dry-fit;
+* cores escaneadas depois da sublimação na Helanca;
+* código original usado no Corel;
+* tecido;
+* imagem da amostra;
+* RGB medido;
+* LAB calculado;
+* Delta E;
+* observações de produção.
+
+4. O objetivo principal não é apenas simular a cor escura.
+   O objetivo principal é responder:
+   “Para a cor da imagem do cliente ficar parecida no Dry-fit, qual código Corel/Pantone eu devo usar?”
+   e também:
+   “Para a cor da imagem do cliente ficar parecida na Helanca, qual código Corel/Pantone eu devo usar?”
+
+5. A página de pedido deve mostrar uma área chamada:
+   “Análise de Cores para Sublimação”
+
+Essa área deve ter:
+
+* upload da imagem de referência do cliente;
+* botão “Analisar cores”;
+* seleção de tecido:
+
+  * Dry-fit;
+  * Helanca;
+  * Ambos;
+* quantidade de cores que quero extrair:
+
+  * 5 cores;
+  * 8 cores;
+  * 12 cores;
+  * 16 cores;
+  * personalizável;
+* prévia da imagem enviada;
+* paleta de cores detectadas;
+* tabela de recomendação de cores para sublimação.
+
+6. Resultado esperado da análise:
+   Para cada cor detectada na imagem do cliente, mostrar:
+
+* Cor detectada na imagem;
+* RGB detectado;
+* HEX detectado;
+* LAB detectado;
+* cor mais próxima no banco Dry-fit;
+* código Corel/Pantone recomendado para Dry-fit;
+* RGB original do Corel para Dry-fit;
+* cor escaneada sublimada no Dry-fit;
+* Delta E da diferença;
+* porcentagem de aproximação;
+* cor mais próxima no banco Helanca;
+* código Corel/Pantone recomendado para Helanca;
+* RGB original do Corel para Helanca;
+* cor escaneada sublimada na Helanca;
+* Delta E da diferença;
+* porcentagem de aproximação.
+
+A tabela deve ser clara para o designer copiar os códigos e usar no Corel.
+
+7. O sistema precisa ter uma área administrativa para cadastrar as amostras de cor.
+
+Essa área pode se chamar:
+“Banco de Cores Sublimadas”
+
+Nessa área eu preciso conseguir cadastrar:
+
+* Nome da tabela de cor;
+* Página da tabela;
+* Código Pantone/Corel;
+* RGB original do Corel;
+* HEX original;
+* tecido:
+
+  * Dry-fit;
+  * Helanca;
+  * outro tecido futuramente;
+* imagem escaneada da amostra;
+* RGB medido da amostra sublimada;
+* HEX medido da amostra sublimada;
+* LAB calculado;
+* observações;
+* impressora usada;
+* tinta usada;
+* papel usado;
+* temperatura;
+* tempo;
+* pressão;
+* data da calibração.
+
+8. Eu vou usar impressoras que têm scanner.
+   Vou em uma gráfica para imprimir as tabelas de cores e depois escanear as amostras sublimadas no Dry-fit e na Helanca.
+
+O sistema precisa permitir subir scans das tabelas ou scans dos recortes de cores.
+Idealmente, eu quero que a IA implemente uma ferramenta onde eu possa subir a imagem escaneada da tabela, selecionar/cortar os quadrados de cor e vincular cada quadrado ao seu código Corel/Pantone.
+
+Exemplo:
+Eu subi a página 10 da tabela.
+A página tem códigos como:
+280 C, 281 C, 282 C, 293 C, 294 C, 295 C, 296 C etc.
+Eu quero selecionar cada quadrado escaneado e cadastrar:
+código_corel = 280 C
+tecido = Dry-fit
+rgb_original = valor da tabela digital
+rgb_sublimado = valor lido do scan
+lab_sublimado = calculado automaticamente
+
+9. O banco de dados no Supabase precisa ter tabelas bem organizadas.
+
+Criar as seguintes tabelas no Supabase:
+
+Tabela: color_libraries
+Campos:
+
+* id
+* name
+* description
+* source
+* created_at
+* updated_at
+
+Tabela: original_colors
+Campos:
+
+* id
+* library_id
+* code
+* name
+* pantone_code
+* corel_code
+* rgb_r
+* rgb_g
+* rgb_b
+* hex
+* lab_l
+* lab_a
+* lab_b
+* page_number
+* created_at
+* updated_at
+
+Tabela: fabric_types
+Campos:
+
+* id
+* name
+* description
+* created_at
+* updated_at
+
+Valores iniciais:
+
+* Dry-fit
+* Helanca
+
+Tabela: sublimated_color_samples
+Campos:
+
+* id
+* original_color_id
+* fabric_type_id
+* scanned_image_url
+* sample_crop_url
+* measured_rgb_r
+* measured_rgb_g
+* measured_rgb_b
+* measured_hex
+* measured_lab_l
+* measured_lab_a
+* measured_lab_b
+* printer_model
+* ink_type
+* paper_type
+* temperature
+* press_time_seconds
+* pressure_level
+* scan_device
+* scan_dpi
+* lighting_condition
+* notes
+* calibration_date
+* created_at
+* updated_at
+
+Tabela: customer_color_analyses
+Campos:
+
+* id
+* order_id
+* uploaded_image_url
+* selected_fabric_mode
+* number_of_colors
+* status
+* created_at
+* updated_at
+
+Tabela: detected_image_colors
+Campos:
+
+* id
+* analysis_id
+* color_index
+* detected_rgb_r
+* detected_rgb_g
+* detected_rgb_b
+* detected_hex
+* detected_lab_l
+* detected_lab_a
+* detected_lab_b
+* percentage_in_image
+* created_at
+
+Tabela: color_recommendations
+Campos:
+
+* id
+* analysis_id
+* detected_color_id
+* fabric_type_id
+* recommended_original_color_id
+* recommended_sublimated_sample_id
+* delta_e
+* match_percentage
+* created_at
+
+10. Storage no Supabase:
+    Criar buckets para:
+
+* customer-reference-images
+* scanned-color-charts
+* color-sample-crops
+* analysis-results
+
+11. Segurança:
+    Usar Row Level Security no Supabase.
+    O cliente só pode ver imagens e análises ligadas ao próprio pedido.
+    Designers e administradores podem ver as análises dos pedidos.
+    Somente administrador pode cadastrar ou editar banco de cores sublimadas.
+
+12. Algoritmo de análise:
+
+Quando o cliente enviar a imagem:
+
+* carregar a imagem;
+* reduzir tamanho para processamento se necessário;
+* remover pixels muito transparentes se houver PNG;
+* converter para RGB;
+* extrair paleta dominante usando K-means ou Median Cut;
+* converter cores detectadas de RGB para LAB;
+* para cada cor detectada, buscar no banco de dados as cores sublimadas do tecido escolhido;
+* calcular Delta E / CIEDE2000 entre a cor detectada e cada cor sublimada cadastrada;
+* ordenar pelo menor Delta E;
+* retornar a melhor cor correspondente;
+* salvar o resultado no Supabase.
+
+13. Importante:
+    A comparação deve ser feita entre a cor da imagem do cliente e a cor já sublimada escaneada, não apenas com o RGB original do Corel.
+
+A lógica certa é:
+cor desejada do cliente → comparar com cores reais sublimadas → retornar o código original Corel/Pantone que gerou aquela cor sublimada.
+
+14. Exemplo:
+    Se o cliente manda uma camisa azul escura.
+    O sistema identifica a cor HEX #123A8A.
+    Ele converte essa cor para LAB.
+    Depois procura no banco Dry-fit qual amostra sublimada ficou mais parecida com esse azul.
+    Se a amostra mais parecida foi gerada originalmente pelo código Corel 293 C, o sistema recomenda:
+    “Para Dry-fit, use 293 C no Corel.”
+
+Se na Helanca a cor mais próxima foi gerada pelo código 2945 C, o sistema recomenda:
+“Para Helanca, use 2945 C no Corel.”
+
+15. Interface na página do pedido:
+
+Adicionar um card na página de pedido com:
+
+Título:
+Análise de Cores para Sublimação
+
+Componentes:
+
+* Upload da imagem de referência;
+* seletor de tecido;
+* seletor de quantidade de cores;
+* botão “Analisar cores”;
+* loading enquanto processa;
+* prévia da imagem;
+* paleta detectada;
+* tabela de recomendações;
+* botão “Salvar análise no pedido”;
+* botão “Exportar PDF”;
+* botão “Copiar códigos para o designer”.
+
+16. A tabela de resultado deve ter colunas:
+
+* Cor da imagem;
+* HEX da imagem;
+* RGB da imagem;
+* % na imagem;
+* Código recomendado Dry-fit;
+* Cor sublimada Dry-fit;
+* Delta E Dry-fit;
+* Aproximação Dry-fit;
+* Código recomendado Helanca;
+* Cor sublimada Helanca;
+* Delta E Helanca;
+* Aproximação Helanca.
+
+Se o usuário selecionar apenas Dry-fit, mostrar só Dry-fit.
+Se selecionar apenas Helanca, mostrar só Helanca.
+Se selecionar Ambos, mostrar os dois.
+
+17. Criar também uma visualização para o designer:
+    Na página interna do pedido, o designer deve ver:
+
+* imagem original do cliente;
+* cores detectadas;
+* códigos recomendados;
+* tecido escolhido;
+* observações automáticas;
+* aviso se alguma cor não tiver boa aproximação.
+
+Exemplo de aviso:
+“A cor #002FFF não possui correspondência muito próxima no banco Dry-fit. Melhor resultado encontrado: Delta E 9.8. Recomenda-se fazer teste físico antes da produção.”
+
+18. Faixas de qualidade:
+    Usar Delta E para classificar a aproximação:
+
+* Delta E 0 a 2: excelente;
+* Delta E 2 a 5: boa;
+* Delta E 5 a 10: média;
+* Delta E acima de 10: baixa / precisa de teste.
+
+19. Criar função para porcentagem de aproximação:
+    Pode ser uma fórmula simples baseada no Delta E.
+    Exemplo:
+    match_percentage = max(0, 100 - delta_e * 5)
+    Mas deixar a função isolada para ser ajustada depois.
+
+20. Tecnologia:
+    Usar:
+
+* Supabase Database;
+* Supabase Storage;
+* Supabase Auth;
+* TypeScript;
+* React/Next.js se o app estiver nessa stack;
+* biblioteca de manipulação de imagem no navegador ou backend;
+* biblioteca para conversão RGB → LAB;
+* biblioteca para cálculo Delta E / CIEDE2000;
+* API route/server action para processar imagens se necessário.
+
+21. Preciso que a IA implemente:
+
+* schema SQL do Supabase;
+* policies básicas de segurança;
+* componentes de interface;
+* serviço de upload de imagem;
+* função de extração de paleta;
+* função RGB para LAB;
+* função Delta E CIEDE2000;
+* função de busca da melhor correspondência;
+* salvamento da análise no Supabase;
+* tela administrativa para cadastrar amostras;
+* tela para visualizar análise dentro do pedido.
+
+22. Criar código limpo e modular:
+
+Separar em arquivos como:
+
+* color-extraction.ts
+* color-conversion.ts
+* delta-e.ts
+* color-matching.ts
+* supabase-color-service.ts
+* ColorAnalysisPanel.tsx
+* ColorPaletteResult.tsx
+* ColorRecommendationTable.tsx
+* AdminColorSamplesPage.tsx
+
+23. O sistema precisa ser preparado para no futuro:
+
+* adicionar mais tecidos;
+* adicionar mais impressoras;
+* adicionar mais perfis de sublimação;
+* comparar também por fornecedor de tinta;
+* criar histórico de calibração;
+* permitir que o designer aprove ou rejeite uma recomendação;
+* aprender com resultados reais aprovados.
+
+24. Quero que o módulo seja visualmente profissional, simples e prático para uma gráfica.
+    Não quero uma tela confusa.
+    O foco é ajudar o designer a saber quais códigos usar no Corel para chegar mais próximo da imagem enviada pelo cliente.
+
+25. Resumo final da lógica principal:
+
+Cliente envia imagem
+→ sistema extrai paleta principal
+→ converte cores para LAB
+→ compara com amostras reais sublimadas no Dry-fit e/ou Helanca
+→ calcula Delta E
+→ retorna os códigos Corel/Pantone originais que geraram as cores mais próximas
+→ salva tudo no pedido
+→ designer usa os códigos recomendados no Corel.
+
+Implemente esse sistema no app existente, integrado à página de pedido do cliente, usando Supabase como banco de dados, autenticação e storage.

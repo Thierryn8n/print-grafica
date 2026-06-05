@@ -1,0 +1,299 @@
+Crie um aplicativo web moderno para gerenciamento de produção de uma gráfica de sublimação, focado em organização de atividades diárias, criação de artes, mockups, aprovação de clientes e envio de arquivos entre a dona da gráfica, designers e clientes.
+
+O sistema deve ter 3 tipos de acesso:
+
+1. Painel da dona da gráfica / administradora
+2. Painel dos designers
+3. Página pública do cliente para aprovação do mockup
+
+Identidade visual do app:
+Use um visual premium, moderno e forte, com as cores branco, preto e laranja. O design deve ser estiloso, com botões grandes, cards elegantes, cantos arredondados, sombras suaves, glassmorphism e neumorphism. A interface deve parecer um sistema profissional de gráfica, tecnologia e produção criativa. Usar layout limpo, organizado e responsivo para desktop, tablet e celular.
+
+Nome sugerido do app:
+PrintFlow Studio
+
+Objetivo principal:
+Permitir que a dona da gráfica crie tarefas de produção para os designers, acompanhe o andamento em um painel Kanban estilo Trello, envie informações completas sobre cada pedido, receba arquivos finais e envie um link de aprovação para o cliente.
+
+Funcionalidades do Painel da Dona da Gráfica:
+
+Criar nova atividade/pedido com os seguintes campos:
+
+* Nome do cliente
+* Nome da equipe, empresa ou projeto
+* Telefone/WhatsApp do cliente
+* Prazo de entrega
+* Prioridade: baixa, normal, alta ou urgente
+* Tipo de serviço: camisa de time, camisa promocional, abadá, uniforme, colete, bandeira, banner, arte avulsa, mockup ou outro
+* Quantidade total de camisas
+* Grade de tamanhos com campos separados:
+
+  * PP
+  * P
+  * M
+  * G
+  * GG
+  * XG
+  * XGG
+  * Infantil
+  * Outros tamanhos personalizados
+* Modelo da peça:
+
+  * Manga curta
+  * Manga longa
+  * Gola careca
+  * Gola alta
+  * Gola polo
+  * Regata
+  * Short
+  * Conjunto
+* Observações da cliente
+* Cores principais da arte
+* Logos do cliente
+* Imagem de referência enviada pelo cliente
+* Mockup feito por IA ou imagem conceito enviada pelo cliente
+* Arquivos anexos do cliente
+* Designer responsável
+* Status do pedido
+
+Permitir anexar arquivos nos formatos:
+EPS, PSD, AI, CDR/CorelDRAW, PDF, PNG, JPG, JPEG, SVG, WEBP, ZIP e RAR.
+
+Criar um painel Kanban com colunas:
+
+* Novo pedido
+* Aguardando informações do cliente
+* Em criação
+* Em revisão interna
+* Mockup pronto
+* Enviado para aprovação
+* Aprovado pelo cliente
+* Ajustes solicitados
+* Arte finalizada
+* Enviado para produção
+* Sublimação em andamento
+* Finalizado
+* Entregue
+
+Cada card do Kanban deve mostrar:
+
+* Nome do cliente
+* Tipo de serviço
+* Designer responsável
+* Prazo
+* Prioridade
+* Miniatura da arte ou mockup
+* Quantidade total
+* Status de aprovação
+* Indicador de atraso
+* Botão para abrir detalhes
+
+A dona da gráfica deve poder:
+
+* Arrastar cards entre colunas
+* Criar tarefas
+* Editar tarefas
+* Excluir tarefas
+* Definir designer responsável
+* Adicionar comentários internos
+* Enviar arquivos para os designers
+* Baixar arquivos enviados pelos designers
+* Marcar prioridade
+* Ver pedidos atrasados
+* Filtrar por designer, cliente, prazo, prioridade e status
+* Pesquisar pedidos pelo nome do cliente
+* Gerar link público para aprovação do cliente
+* Ver histórico de alterações de cada pedido
+* Aprovar internamente antes de enviar ao cliente
+* Receber notificação quando o designer enviar uma nova versão
+
+Funcionalidades do Painel dos Designers:
+
+O designer deve ver apenas as tarefas atribuídas a ele ou todas as tarefas, caso a administradora permita.
+
+O painel do designer deve conter:
+
+* Kanban próprio com tarefas
+* Lista de pedidos do dia
+* Pedidos urgentes em destaque
+* Detalhes completos do briefing
+* Imagens de referência
+* Logos do cliente
+* Mockups enviados por IA
+* Observações da dona da gráfica
+* Área para comentários internos
+* Área para upload dos arquivos criados
+
+O designer deve poder enviar:
+
+* Prévia em PNG ou JPG
+* Mockup para aprovação
+* Arquivo aberto em CorelDRAW, PSD, AI ou EPS
+* PDF final para produção
+* Arquivo vetorial
+* Arquivo ZIP com todos os materiais
+
+O designer também deve poder:
+
+* Marcar tarefa como “em criação”
+* Solicitar mais informações
+* Enviar primeira versão
+* Enviar versão corrigida
+* Marcar como finalizada
+* Adicionar observações técnicas
+* Informar se a arte está pronta para sublimação
+* Informar se o arquivo está em RGB, CMYK ou pronto para impressão
+* Informar medida da arte, por exemplo 57 cm x 75 cm ou tamanho personalizado
+
+Funcionalidades da Página do Cliente:
+
+Criar uma página pública acessada por link, sem o cliente precisar fazer login.
+
+Essa página deve mostrar:
+
+* Nome do cliente
+* Nome do projeto
+* Imagem do mockup da camisa
+* Frente e costas, quando houver
+* Observações da gráfica
+* Data de envio
+* Botão grande “Aprovar Arte”
+* Botão “Solicitar Ajuste”
+* Campo para o cliente escrever observações
+* Aviso: “Ao aprovar esta arte, você confirma que está de acordo com o layout, cores, nomes, números, logos e informações para seguir para produção.”
+
+Quando o cliente aprovar:
+
+* O status do pedido deve mudar para “Aprovado pelo cliente”
+* A dona da gráfica deve receber uma notificação
+* Registrar data e hora da aprovação
+* Salvar o nome do cliente que aprovou
+
+Quando o cliente solicitar ajuste:
+
+* O status deve mudar para “Ajustes solicitados”
+* A mensagem do cliente deve aparecer no painel da dona da gráfica e do designer
+* O card deve voltar para revisão
+
+Funcionalidades extras importantes:
+
+1. Dashboard geral com indicadores:
+
+* Total de pedidos do dia
+* Pedidos em criação
+* Pedidos atrasados
+* Pedidos aguardando aprovação
+* Pedidos aprovados
+* Pedidos finalizados
+* Produção do mês
+* Ranking de tarefas por designer
+
+2. Sistema de notificações:
+
+* Nova tarefa criada
+* Tarefa atribuída a um designer
+* Cliente aprovou mockup
+* Cliente solicitou ajuste
+* Prazo próximo
+* Pedido atrasado
+* Designer enviou arquivo
+
+3. Sistema de comentários:
+   Cada pedido deve ter uma linha do tempo com comentários da dona da gráfica e dos designers.
+
+4. Histórico do pedido:
+   Registrar todas as ações:
+
+* Quem criou
+* Quem editou
+* Quem enviou arquivo
+* Quem mudou status
+* Quem aprovou
+* Data e hora de cada ação
+
+5. Biblioteca de arquivos:
+   Criar uma área para armazenar arquivos por cliente e por pedido.
+
+6. Sistema de versões:
+   Permitir enviar várias versões do mockup:
+
+* Versão 1
+* Versão 2
+* Versão 3
+* Versão final aprovada
+
+7. Filtros e pesquisa:
+   Permitir filtrar pedidos por:
+
+* Cliente
+* Designer
+* Status
+* Prazo
+* Prioridade
+* Tipo de serviço
+* Aprovação pendente
+* Arquivos finalizados
+
+8. Página de detalhes do pedido:
+   Ao clicar em um card, abrir uma página/modal com:
+
+* Briefing completo
+* Grade de tamanhos
+* Arquivos anexos
+* Imagens de referência
+* Mockup atual
+* Comentários
+* Histórico
+* Botão de upload
+* Botão de gerar link de aprovação
+* Botão de enviar para produção
+
+9. Área de produção:
+   Criar uma visualização específica para pedidos aprovados e prontos para sublimação, com status:
+
+* Aprovado
+* Arquivo conferido
+* Enviado para impressão
+* Sublimando
+* Costura/acabamento
+* Pronto para entrega
+
+10. Controle de checklist para cada arte:
+    Cada pedido deve ter um checklist com:
+
+* Logo do cliente conferida
+* Nome conferido
+* Número conferido
+* Cores conferidas
+* Tamanhos conferidos
+* Mockup frente conferido
+* Mockup costas conferido
+* Arquivo em alta qualidade
+* Arquivo pronto para impressão
+* Cliente aprovou
+
+Interface desejada:
+
+Tela inicial:
+Dashboard com cards grandes, visual premium, fundo claro com detalhes laranja e preto, cards com glassmorphism e sombras suaves.
+
+Menu lateral:
+
+* Dashboard
+* Kanban
+* Novo pedido
+* Designers
+* Clientes
+* Aprovações
+* Produção
+* Arquivos
+* Relatórios
+* Configurações
+
+Kanban:
+Cards grandes, modernos, com miniatura da arte, etiqueta de prioridade, nome do cliente e prazo. Deve ter drag and drop.
+
+Design:
+Usar tipografia moderna, títulos grandes e impactantes, botões arredondados, ícones bonitos, animações suaves, cards com efeito glassmorphism, neumorphism e aparência premium. A interface deve parecer um sistema profissional para uma gráfica criativa de sublimação.
+
+Crie o app em Next.js com React, Tailwind CSS e componentes modernos. Use dados mockados inicialmente, mas deixe a estrutura preparada para conectar com banco de dados futuramente. O layout deve ser bem organizado, bonito, intuitivo e pronto para apresentação.

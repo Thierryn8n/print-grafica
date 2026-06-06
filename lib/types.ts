@@ -3,6 +3,88 @@ export type UserStatus = 'pending' | 'approved' | 'rejected'
 export type OrderStatus = 'briefing' | 'design' | 'aprovacao' | 'producao' | 'finalizado'
 export type OrderPriority = 'baixa' | 'media' | 'alta' | 'urgente'
 
+export type SportType =
+  | 'futebol'
+  | 'futsal'
+  | 'basquete'
+  | 'volei'
+  | 'handebol'
+  | 'corrida'
+  | 'ciclismo'
+
+export const SPORT_LABELS: Record<SportType, string> = {
+  futebol: 'Futebol',
+  futsal: 'Futsal',
+  basquete: 'Basquete',
+  volei: 'Vôlei',
+  handebol: 'Handebol',
+  corrida: 'Corrida',
+  ciclismo: 'Ciclismo',
+}
+
+export interface OrderItem {
+  id: string
+  order_id: string
+  import_batch_id: string | null
+  player_name: string | null
+  player_number: string | null
+  size: string | null
+  position: string | null
+  category: string | null
+  team_name: string | null
+  sector: string | null
+  role: string | null
+  sponsor: string | null
+  quantity: number
+  notes: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type ImportSourceType = 'excel' | 'csv' | 'paste'
+export type ImportTarget = 'order_items' | 'orders' | 'clients'
+export type ImportStatus = 'completed' | 'rolled_back' | 'partial'
+
+export interface ImportError {
+  row: number
+  field?: string
+  message: string
+}
+
+export interface ImportBatch {
+  id: string
+  order_id: string | null
+  imported_by: string | null
+  source_type: ImportSourceType
+  file_name: string | null
+  target: ImportTarget
+  total_rows: number
+  success_count: number
+  error_count: number
+  status: ImportStatus
+  errors: ImportError[]
+  column_mapping: Record<string, string>
+  created_at: string
+}
+
+// Campos que o importador sabe mapear para order_items
+export const IMPORT_FIELDS = [
+  { key: 'player_name', label: 'Nome', aliases: ['nome', 'name', 'jogador', 'atleta', 'cliente'] },
+  { key: 'player_number', label: 'Número', aliases: ['numero', 'número', 'number', 'num', 'n'] },
+  { key: 'size', label: 'Tamanho', aliases: ['tamanho', 'size', 'tam'] },
+  { key: 'position', label: 'Posição', aliases: ['posicao', 'posição', 'position', 'pos'] },
+  { key: 'category', label: 'Categoria', aliases: ['categoria', 'category', 'cat'] },
+  { key: 'team_name', label: 'Equipe', aliases: ['equipe', 'time', 'team', 'clube'] },
+  { key: 'sector', label: 'Setor', aliases: ['setor', 'sector', 'departamento'] },
+  { key: 'role', label: 'Cargo', aliases: ['cargo', 'role', 'funcao', 'função'] },
+  { key: 'sponsor', label: 'Patrocinador', aliases: ['patrocinador', 'sponsor', 'patrocinio'] },
+  { key: 'quantity', label: 'Quantidade', aliases: ['quantidade', 'quantity', 'qtd', 'qty'] },
+  { key: 'notes', label: 'Observações', aliases: ['observacoes', 'observações', 'obs', 'notes', 'notas'] },
+] as const
+
+export type ImportFieldKey = typeof IMPORT_FIELDS[number]['key']
+
 export interface Profile {
   id: string
   email: string
@@ -37,6 +119,7 @@ export interface Order {
   team_name: string | null
   product_type: string
   model: string | null
+  sport_type: SportType | null
   quantity: number
   size_pp: number
   size_p: number

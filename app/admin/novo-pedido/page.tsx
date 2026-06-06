@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { Client, Profile } from "@/lib/types"
-import { PRODUCT_TYPES } from "@/lib/types"
+import { PRODUCT_TYPES, SPORT_LABELS } from "@/lib/types"
 import { 
   ArrowLeft, 
   Save, 
@@ -73,6 +73,7 @@ export default function NovoPedidoPage() {
     
     // Modelo
     model: "manga-curta" as string,
+    sportType: "" as string,
     
     description: "",
     colors: "",
@@ -208,6 +209,7 @@ export default function NovoPedidoPage() {
         size_infantil: formData.sizeInfantil,
         size_custom: formData.sizeCustom || null,
         model: formData.model,
+        sport_type: formData.sportType || null,
         description: formData.description || null,
         colors: formData.colors || null,
         logos_url: formData.logosUrl || null,
@@ -400,6 +402,28 @@ export default function NovoPedidoPage() {
                     {MODEL_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Modalidade Esportiva</Label>
+                <Select
+                  value={formData.sportType || "nenhuma"}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, sportType: value === "nenhuma" ? "" : value })
+                  }
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Nenhuma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhuma">Nenhuma</SelectItem>
+                    {Object.entries(SPORT_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
                       </SelectItem>
                     ))}
                   </SelectContent>

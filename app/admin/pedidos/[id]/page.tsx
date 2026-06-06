@@ -22,6 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { OrderTimeline } from "@/components/orders/order-timeline"
+import { OrderItemsManager } from "@/components/orders/order-items-manager"
+import { SPORT_LABELS } from "@/lib/types"
 import {
   ArrowLeft,
   ChevronRight,
@@ -200,6 +202,12 @@ export default function PedidoDetalhePage() {
                   <p className="text-xs text-muted-foreground">Quantidade</p>
                   <p className="font-medium">{qty} un</p>
                 </div>
+                {order.sport_type && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Modalidade</p>
+                    <p className="font-medium">{SPORT_LABELS[order.sport_type]}</p>
+                  </div>
+                )}
               </div>
 
               {sizes.length > 0 && (
@@ -249,6 +257,9 @@ export default function PedidoDetalhePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Jogadores / Itens */}
+          <OrderItemsManager orderId={order.id} />
 
           {/* Timeline */}
           <Card>

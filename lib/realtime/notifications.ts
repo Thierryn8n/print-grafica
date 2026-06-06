@@ -59,7 +59,7 @@ export class RealtimeNotifications {
 
   // Inscrever para mudanças em pedidos (para designers e admins)
   subscribeToOrders(
-    callback: (payload: RealtimePostgresChangesPayload) => void
+    callback: (payload: RealtimePostgresChangesPayload<Record<string, any>>) => void
   ) {
     const channelName = 'orders_changes'
     
@@ -84,7 +84,7 @@ export class RealtimeNotifications {
 
   // Inscrever para mudanças em kanban (status changes)
   subscribeToOrderStatus(
-    callback: (payload: RealtimePostgresChangesPayload) => void
+    callback: (payload: RealtimePostgresChangesPayload<Record<string, any>>) => void
   ) {
     const channelName = 'order_status_changes'
     

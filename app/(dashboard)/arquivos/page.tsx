@@ -60,7 +60,7 @@ export default function ArquivosPage() {
       }
     }
     return acc
-  }, {} as Record<string, { files: typeof allFiles, orderId: string }>)
+  }, {} as Record<string, { files: typeof orders[number]['files'], orderId: string }>)
 
   return (
     <div className="space-y-6">

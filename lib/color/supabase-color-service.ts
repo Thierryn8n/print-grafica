@@ -61,6 +61,11 @@ export interface SublimatedColorSample {
   lighting_condition: string | null;
   notes: string | null;
   calibration_date: string | null;
+  created_at?: string;
+  updated_at?: string;
+  // Relações populadas via join
+  original_colors?: Partial<OriginalColor> | null;
+  fabric_types?: Partial<FabricType> | null;
 }
 
 export interface CustomerColorAnalysis {
@@ -97,6 +102,10 @@ export interface ColorRecommendation {
   recommended_sublimated_sample_id: string | null;
   delta_e: number | null;
   match_percentage: number | null;
+  // Relações populadas via join
+  fabric_types?: Partial<FabricType> | null;
+  original_colors?: Partial<OriginalColor> | null;
+  sublimated_color_samples?: Partial<SublimatedColorSample> | null;
 }
 
 const supabase = createClient();
@@ -228,7 +237,7 @@ export async function createOriginalColor(color: Omit<OriginalColor, 'id'>): Pro
 }
 
 // Criar nova amostra sublimada
-export async function createSublimatedSample(sample: Omit<SublimatedColorSample, 'id' | 'created_at' | 'updated_at'>): Promise<SublimatedColorSample> {
+export async function createSublimatedSample(sample: Partial<Omit<SublimatedColorSample, 'id' | 'created_at' | 'updated_at'>>): Promise<SublimatedColorSample> {
   const { data, error } = await supabase
     .from('sublimated_color_samples')
     .insert(sample)

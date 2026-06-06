@@ -208,8 +208,8 @@ export class FinanceService {
       return acc
     }, {} as Record<string, number>)
 
-    const pendingExpenses = expenses.filter(e => e.status === 'pendente').reduce((sum, e) => sum + e.amount, 0)
-    const pendingRevenues = revenues.filter(r => r.status === 'pendente').reduce((sum, r) => sum + r.amount, 0)
+    const pendingExpenses = expenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0)
+    const pendingRevenues = revenues.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
 
     return {
       totalExpenses,

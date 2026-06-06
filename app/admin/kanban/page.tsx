@@ -33,8 +33,12 @@ import {
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import Link from "next/link"
+import { getSlaInfo, computeProductionMetrics } from "@/lib/production/sla"
+import { ProductionMetricsBar } from "@/components/production/production-metrics-bar"
 
 const COLUMNS: OrderStatus[] = ["briefing", "design", "aprovacao", "producao", "finalizado"]
+
+type SlaFilter = "todos" | "atrasados" | "vencendo"
 
 export default function KanbanPage() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -43,6 +47,7 @@ export default function KanbanPage() {
   const [activeColumn, setActiveColumn] = useState<OrderStatus>("briefing")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [slaFilter, setSlaFilter] = useState<SlaFilter>("todos")
 
   useEffect(() => {
     loadData()
@@ -116,16 +121,28 @@ export default function KanbanPage() {
   }
 
   function getColumnOrders(status: OrderStatus) {
-    return orders.filter(o => o.status === status)
+    return orders.filter((o) => {
+      if (o.status !== status) return false
+      if (slaFilter === "todos") return true
+      const sla = getSlaInfo(o)
+      if (slaFilter === "atrasados") return sla.status === "atrasado"
+      if (slaFilter === "vencendo") return sla.status === "atencao"
+      return true
+    })
   }
+
+  const metrics = computeProductionMetrics(orders)
 
   function OrderCard({ order }: { order: Order }) {
     const currentIndex = COLUMNS.indexOf(order.status)
     const canMoveBack = currentIndex > 0
     const canMoveForward = currentIndex < COLUMNS.length - 1
+    const sla = getSlaInfo(order)
+    const showSlaAccent = sla.status === "atrasado" || sla.status === "atencao"
 
     return (
-      <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+      <Card className={`cursor-pointer hover:border-primary/50 transition-colors ${showSlaAccent ? "border-l-4" : ""}`}
+        style={showSlaAccent ? { borderLeftColor: sla.status === "atrasado" ? "#ef4444" : "#f59e0b" } : undefined}>
         <CardContent className="p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0" onClick={() => { setSelectedOrder(order); setSheetOpen(true) }}>
@@ -168,12 +185,17 @@ export default function KanbanPage() {
             <span className={`text-[10px] px-2 py-0.5 rounded-full ${PRIORITY_COLORS[order.priority]} text-white`}>
               {PRIORITY_LABELS[order.priority]}
             </span>
-            {order.deadline && (
+            {sla.status !== "sem_prazo" && sla.status !== "concluido" ? (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${sla.color}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${sla.dotColor}`} />
+                {sla.label}
+              </span>
+            ) : order.deadline ? (
               <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
                 {format(new Date(order.deadline), "dd/MM")}
               </span>
-            )}
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -192,14 +214,38 @@ export default function KanbanPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl lg:text-2xl font-bold text-foreground">Kanban</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground">Fila de Produção</h1>
           <p className="text-sm text-muted-foreground">
-            Arraste os pedidos entre as colunas
+            Acompanhe SLA, prazos e o fluxo dos pedidos
           </p>
         </div>
         <Button asChild size="sm">
           <Link href="/admin/novo-pedido">Novo Pedido</Link>
         </Button>
+      </div>
+
+      {/* Métricas de produção */}
+      <ProductionMetricsBar metrics={metrics} />
+
+      {/* Filtros de SLA */}
+      <div className="flex items-center gap-2 overflow-x-auto">
+        {([
+          { key: "todos", label: "Todos" },
+          { key: "atrasados", label: `Atrasados (${metrics.overdue})` },
+          { key: "vencendo", label: `Vencendo (${metrics.dueSoon})` },
+        ] as { key: SlaFilter; label: string }[]).map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setSlaFilter(f.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
+              slaFilter === f.key
+                ? "bg-foreground text-background"
+                : "bg-muted text-muted-foreground hover:bg-muted/70"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {/* Mobile: Tab-like navigation */}

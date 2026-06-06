@@ -19,7 +19,8 @@ import {
   Menu,
   X,
   UserCheck,
-  Palette
+  Palette,
+  Package
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils"
 const adminLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/kanban", label: "Kanban", icon: Columns3 },
+  { href: "/admin/pedidos", label: "Pedidos", icon: Package },
   { href: "/admin/novo-pedido", label: "Novo Pedido", icon: FilePlus },
   { href: "/admin/formularios", label: "Formulários", icon: UserCheck },
   { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },

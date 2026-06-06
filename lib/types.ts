@@ -34,14 +34,30 @@ export interface Order {
   client_id: string | null
   client_name: string
   client_phone: string | null
+  team_name: string | null
   product_type: string
+  model: string | null
   quantity: number
+  size_pp: number
+  size_p: number
+  size_m: number
+  size_g: number
+  size_gg: number
+  size_xg: number
+  size_xgg: number
+  size_infantil: number
+  size_custom: string | null
   description: string | null
+  colors: string | null
+  logos_url: string | null
+  reference_image_url: string | null
+  ai_mockup_url: string | null
   specifications: Record<string, unknown>
   status: OrderStatus
   priority: OrderPriority
   deadline: string | null
   total_value: number | null
+  cost_value: number | null
   designer_id: string | null
   approval_token: string | null
   approved_at: string | null

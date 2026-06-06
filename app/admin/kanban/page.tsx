@@ -87,10 +87,13 @@ export default function KanbanPage() {
 
     if (!error) {
       // Log activity
-      await supabase.from("activity_log").insert({
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from("activity_logs").insert({
         order_id: order.id,
+        user_id: user?.id ?? null,
         action: "status_changed",
-        description: `Status alterado de ${ORDER_STATUS_LABELS[order.status]} para ${ORDER_STATUS_LABELS[newStatus]}`
+        description: `Status alterado de ${ORDER_STATUS_LABELS[order.status]} para ${ORDER_STATUS_LABELS[newStatus]}`,
+        metadata: { from: order.status, to: newStatus }
       })
 
       await loadData()

@@ -219,7 +219,7 @@ export default function NovoPedidoPage() {
         designer_id: formData.designerId || null,
         notes: formData.notes || null,
         created_by: user.id,
-        status: "novo-pedido"
+        status: "briefing"
       })
       .select()
       .single()

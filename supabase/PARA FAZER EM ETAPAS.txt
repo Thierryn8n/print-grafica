@@ -1,0 +1,95 @@
+O que está faltando ou pode ser implementado
+1. Sistema de Notificações em Tempo Real
+Implementar WebSocket ou Supabase Realtime para notificações instantâneas
+Badge de notificações não lidas
+Sistema de push notifications
+2. Sistema de Chat/Mensagens
+Chat entre admin e designers
+Chat entre designer e cliente
+Histórico de conversas por pedido
+3. Sistema de Upload de Arquivos Robusto
+Drag & drop
+Preview de arquivos
+Versionamento de arquivos
+Compressão automática de imagens
+Validação de tipos de arquivo
+4. Sistema de Relatórios Detalhados
+Relatórios por período (diário, semanal, mensal)
+Relatórios por designer
+Relatórios por cliente
+Relatórios de produtividade
+Exportação em PDF/Excel
+5. Sistema de Gestão Financeira
+Controle de custos
+Faturamento
+Orçamentos
+Contas a pagar/receber
+6. Sistema de Gestão de Estoque
+Controle de materiais (camisetas, tintas, papéis)
+Alertas de estoque baixo
+Histórico de movimentação
+7. Sistema de Gestão de Impressoras
+Cadastro de impressoras
+Status das impressoras
+Manutenção preventiva
+Histórico de impressões
+8. Sistema de Workflow Avançado
+Automação de transições de status
+Regras de aprovação
+SLA por tipo de pedido
+Escalamento automático
+9. Sistema de Integrações
+Integração com WhatsApp Business API
+Integração com Google Calendar
+Integração com sistemas de pagamento
+Integração com serviços de e-mail
+10. Sistema de Mobile App
+App React Native para designers
+App para clientes acompanhar pedidos
+Notificações push
+11. Sistema de API REST
+API para integrações externas
+Documentação com Swagger/OpenAPI
+Rate limiting
+Autenticação JWT
+12. Sistema de Testes
+Testes unitários
+Testes de integração
+Testes E2E com Playwright
+CI/CD com GitHub Actions
+13. Sistema de Documentação
+Documentação técnica
+Guia de usuário
+Tutoriais
+FAQ
+14. Sistema de Monitoramento
+Monitoramento de erros (Sentry)
+Analytics (Google Analytics)
+Performance monitoring
+Uptime monitoring
+15. Sistema de Backup
+Backup automático do banco
+Backup de arquivos
+Restauração
+Retenção de backups
+16. Sistema de Multi-idioma
+Suporte a múltiplos idiomas
+Traduções dinâmicas
+Detecção automática de idioma
+17. Sistema de Temas
+Tema claro/escuro
+Temas personalizados
+Branding customizável
+18. Sistema de Permissões Granular
+Permissões por módulo
+Permissões por ação
+Roles customizáveis
+19. Sistema de Auditoria
+Log de todas as ações
+Rastreabilidade
+Relatórios de auditoria
+20. Sistema de Calendário
+Calendário de entregas
+Agendamento de tarefas
+Lembretes
+Integração com Google Calendar

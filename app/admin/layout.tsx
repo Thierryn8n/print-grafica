@@ -22,7 +22,10 @@ import {
   Palette,
   Package,
   Wallet,
-  Briefcase
+  Briefcase,
+  Wand2,
+  FileStack,
+  Plug
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -36,6 +39,9 @@ const adminLinks = [
   { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/crm", label: "CRM", icon: Briefcase },
+  { href: "/admin/templates", label: "Templates", icon: Wand2 },
+  { href: "/admin/pdf-massa", label: "PDF em Massa", icon: FileStack },
+  { href: "/admin/integracoes", label: "Integrações & API", icon: Plug },
   { href: "/admin/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/admin/designers", label: "Designers", icon: Palette },
   { href: "/admin/cores", label: "Cores Sublimadas", icon: Palette },

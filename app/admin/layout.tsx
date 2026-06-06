@@ -20,7 +20,8 @@ import {
   X,
   UserCheck,
   Palette,
-  Package
+  Package,
+  Wallet
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -33,6 +34,7 @@ const adminLinks = [
   { href: "/admin/formularios", label: "Formulários", icon: UserCheck },
   { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
+  { href: "/admin/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/admin/designers", label: "Designers", icon: Palette },
   { href: "/admin/cores", label: "Cores Sublimadas", icon: Palette },
   { href: "/admin/tecidos", label: "Tecidos", icon: FolderOpen },

@@ -12,13 +12,27 @@ import {
   Users,
   TrendingUp,
   Calendar,
-  ArrowRight
+  ArrowRight,
+  DollarSign,
+  Wallet,
+  Receipt
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import {
+  fetchExpenses,
+  fetchRevenues,
+  computeSummary,
+  computeMonthlySeries,
+  formatCurrency,
+  type FinanceSummary,
+  type MonthlyPoint,
+} from "@/lib/finance/finance-service"
+import { RevenueChart } from "@/components/dashboard/revenue-chart"
+import { OrdersStatusChart } from "@/components/dashboard/orders-status-chart"
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -30,7 +44,10 @@ export default function AdminDashboardPage() {
     pendingApprovals: 0
   })
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
+  const [allOrders, setAllOrders] = useState<Order[]>([])
   const [pendingUsers, setPendingUsers] = useState<Profile[]>([])
+  const [finance, setFinance] = useState<FinanceSummary | null>(null)
+  const [monthly, setMonthly] = useState<MonthlyPoint[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,6 +73,16 @@ export default function AdminDashboardPage() {
         pendingApprovals: 0
       })
       setRecentOrders(orders.slice(0, 5))
+      setAllOrders(orders)
+    }
+
+    // Dados financeiros (não bloqueiam o dashboard em caso de erro)
+    try {
+      const [revenues, expenses] = await Promise.all([fetchRevenues(), fetchExpenses()])
+      setFinance(computeSummary(revenues, expenses))
+      setMonthly(computeMonthlySeries(revenues, expenses, 6))
+    } catch (e) {
+      console.log("[v0] erro ao carregar financeiro:", e)
     }
 
     // Get clients count
@@ -191,6 +218,72 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </Link>
+      </div>
+
+      {/* KPIs Financeiros */}
+      {finance && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-green-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold truncate">{formatCurrency(finance.totalRevenue)}</p>
+                  <p className="text-xs text-muted-foreground">Faturamento</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <Receipt className="w-5 h-5 text-red-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold truncate">{formatCurrency(finance.totalExpense)}</p>
+                  <p className="text-xs text-muted-foreground">Despesas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${finance.netProfit >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
+                  <TrendingUp className={`w-5 h-5 ${finance.netProfit >= 0 ? "text-emerald-500" : "text-red-500"}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold truncate">{formatCurrency(finance.netProfit)}</p>
+                  <p className="text-xs text-muted-foreground">Lucro ({finance.margin.toFixed(0)}%)</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Link href="/admin/financeiro">
+            <Card className="hover:border-primary/50 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold truncate">{formatCurrency(finance.receivable)}</p>
+                    <p className="text-xs text-muted-foreground">A Receber</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      )}
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
+        <RevenueChart data={monthly} />
+        <OrdersStatusChart orders={allOrders} />
       </div>
 
       {/* Pending Users Alert */}

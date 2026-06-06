@@ -25,7 +25,8 @@ import {
   Briefcase,
   Wand2,
   FileStack,
-  Plug
+  Plug,
+  Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -41,6 +42,7 @@ const adminLinks = [
   { href: "/admin/crm", label: "CRM", icon: Briefcase },
   { href: "/admin/templates", label: "Templates", icon: Wand2 },
   { href: "/admin/pdf-massa", label: "PDF em Massa", icon: FileStack },
+  { href: "/admin/assistente", label: "Assistente IA", icon: Sparkles },
   { href: "/admin/integracoes", label: "Integrações & API", icon: Plug },
   { href: "/admin/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/admin/designers", label: "Designers", icon: Palette },

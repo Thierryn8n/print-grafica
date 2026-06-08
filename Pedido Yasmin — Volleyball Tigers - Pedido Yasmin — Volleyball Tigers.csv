@@ -1,0 +1,70 @@
+Pedido Yasmin - Volleyball Tigers,,,,,,,,
+,,,,,,,,
+ID,Nome,Cor/Categoria,Número,Tamanho Blusa,Tipo Blusa,Tamanho Short,Tipo Item,Observação
+1,Cadu,Branca,1,G,Regata,G,Completo,Regata + short
+2,Uchôa,Branca,2,P,Regata,P,Completo,Regata + short
+3,Rahiron,Branca,3,M,Regata,M,Completo,Regata + short
+4,Matheus,Branca,4,M,Regata,—,Somente blusa,Regata
+5,D. Nascimento,Branca,5,G,Regata,M,Completo,Regata + short
+6,Yasmin,Branca,7,G,Com manga,—,Somente blusa,Somente blusa com manga
+7,Charles,Branca,7,P,Regata,Não informado,Completo,Falta confirmar short
+8,Luiz,Branca,8,G,Regata,G,Completo,Regata + short
+9,Jhon,Branca,9,M,Regata,M,Completo,Regata + short
+10,Yarle,Branca,10,M,Regata,Não informado,Completo,Falta confirmar short
+11,Gersu,Branca,12,M,Regata,M,Completo,Regata + short
+12,Lucas Pontes,Branca,13,G,Regata,M,Completo,Regata + short
+13,Pedro Lucas,Branca,14,G,Regata,Não informado,Completo,Falta confirmar short
+14,Luan,Branca,18,P,Regata,P,Completo,Regata + short
+15,Rodrigues,Branca,19,M,Regata,Não informado,Completo,Falta confirmar short
+16,Vando,Branca,20,M,Regata,Não informado,Completo,Falta confirmar short
+17,Arthur M.,Branca,21,M,Regata,P,Completo,Regata + short
+18,Davi,Branca,22,M,Regata,P,Completo,Regata + short
+19,G. Anthony,Branca,23,G,Regata,M,Completo,Regata + short
+20,Antonny,Branca,24,M,Regata,M,Completo,Regata + short
+21,Asafe,Branca,30,M,Regata,M,Completo,Regata + short
+22,A. Barbosa,Branca,99,G,Regata,M,Completo,Regata + short
+23,Vitin,Branca,37,M,Regata,M,Completo,Regata + short
+24,D. Silva,Branca,11,M,Regata,Não informado,Completo,Falta confirmar short
+25,Pontes,Branca,33,G,Regata,M,Completo,Regata + short
+26,Farias,Branca,77,M,Regata,M,Completo,Regata + short
+27,Yarle,Branca,94,G,Regata,M,Completo,Segundo uniforme do Yarle
+28,Ruan Lima,Branca,20,M,Regata,P,Completo,Regata + short
+29,Gonçalves,Roxa,6,M,Regata,M,Completo,Regata + short
+30,Jhones B.,Roxa,7,P,Regata,P,Completo,Regata + short
+31,Jefferson,Roxa,11,P,Regata,P,Completo,Regata + short
+32,Lucas Pontes,Roxa,13,G,Regata,M,Completo,Regata + short
+33,Thalisson,Roxa,17,P,Regata,P,Completo,Regata + short
+34,Vando,Roxa,2,M,Regata,—,Somente blusa,Regata
+35,Davi,Roxa,22,M,Regata,—,Somente blusa,Regata
+36,Luis H.,Roxa,31,G,Regata,M,Completo,Regata + short
+37,Erica,Roxa,24,M,Regata,—,Somente blusa,Regata
+38,Vando,Comissão técnica,—,M,Com manga,—,Somente blusa,Somente blusa com manga
+39,Lucas Pontes,Comissão técnica,—,G,Com manga,—,Somente blusa,Somente blusa com manga
+40,Yasmin,Comissão técnica,—,G,Com manga,—,Somente blusa,Somente blusa com manga
+,,,,,,,,
+FECHAMENTO FINANCEIRO,,,,,,,,
+Item,Quantidade,Valor Unitário,Total,,,,,
+Conjuntos completos,32,40.00,1280.00,,,,,
+Somente blusa,8,25.00,200.00,,,,,
+Total Geral,40,,1480.00,,,,,
+,,,,,,,,
+RESUMO POR TAMANHO DA BLUSA,,,,,,,,
+Tamanho,Quantidade,,,,,,,
+P,6,,,,,,,
+M,20,,,,,,,
+G,14,,,,,,,
+Total,40,,,,,,,
+,,,,,,,,
+RESUMO POR TIPO DE BLUSA,,,,,,,,
+Tipo,Quantidade,,,,,,,
+Regata,36,,,,,,,
+Com manga,4,,,,,,,
+Total,40,,,,,,,
+,,,,,,,,
+RESUMO DOS SHORTS,,,,,,,,
+Tamanho do short,Quantidade,,,,,,,
+P,8,,,,,,,
+M,16,,,,,,,
+G,2,,,,,,,
+Não informado,6,,,,,,,
+Total de conjuntos completos,32,,,,,,,

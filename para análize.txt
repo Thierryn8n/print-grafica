@@ -1,0 +1,550 @@
+# CONTEXTO DO PROJETO
+
+Você é um Arquiteto de Software Sênior especialista em Next.js 16, React 19, TypeScript, Supabase, SaaS B2B, sistemas gráficos, automação de produção, sublimação, estamparia e CorelDRAW.
+
+Analise toda a estrutura existente do projeto e evolua-o para se tornar uma plataforma completa para gráficas, estamparias, comunicação visual, brindes personalizados e uniformes esportivos.
+
+NÃO REMOVA funcionalidades existentes.
+
+MANTENHA compatibilidade com:
+
+* Next.js 16
+* React 19
+* TypeScript Strict
+* Supabase
+* Tailwind
+* shadcn/ui
+* SWR
+* Zustand
+* Zod
+
+O objetivo é transformar o sistema atual em um ERP + MIS + Produção Gráfica + Automação de Artes.
+
+# MÓDULO 1 — GESTÃO DE PEDIDOS AVANÇADA
+
+Criar estrutura completa para:
+
+## Pedidos
+
+Campos:
+
+* id
+* numero_pedido
+* cliente_id
+* vendedor_id
+* designer_id
+* prioridade
+* observacoes
+* status
+* data_entrega
+* valor_total
+* custo_total
+* lucro_estimado
+
+Status:
+
+* orçamento
+* aguardando aprovação
+* aprovado
+* arte
+* produção
+* impressão
+* acabamento
+* entrega
+* finalizado
+* cancelado
+
+Criar timeline visual completa.
+
+Registrar histórico de mudanças.
+
+Registrar usuário responsável.
+
+Registrar data e hora.
+
+# MÓDULO 2 — IMPORTAÇÃO EM MASSA EXCEL
+
+Criar sistema de importação:
+
+xlsx
+xls
+csv
+
+Campos configuráveis:
+
+Nome
+Número
+Tamanho
+Equipe
+Categoria
+Cargo
+Setor
+Observações
+
+Mapeamento inteligente de colunas.
+
+Pré-visualização antes da importação.
+
+Validação automática.
+
+Relatório de erros.
+
+Rollback da importação.
+
+# MÓDULO 3 — UNIFORMES ESPORTIVOS
+
+Criar módulo especializado.
+
+Tipos:
+
+* Futebol
+* Futsal
+* Basquete
+* Vôlei
+* Handebol
+* Corrida
+* Ciclismo
+
+Cada uniforme deve possuir:
+
+Nome
+Número
+Patrocinadores
+Categoria
+Tamanho
+Posição
+
+Permitir importação via Excel.
+
+Permitir edição individual.
+
+Permitir edição em massa.
+
+# MÓDULO 4 — GERADOR DE ARTES VARIÁVEIS
+
+Criar engine de personalização.
+
+Utilizar placeholders.
+
+Exemplos:
+
+{{nome}}
+{{numero}}
+{{time}}
+{{cargo}}
+{{tamanho}}
+
+Permitir substituição automática.
+
+Gerar centenas de versões automaticamente.
+
+Salvar cada versão.
+
+Gerar preview.
+
+# MÓDULO 5 — TEMPLATE ENGINE
+
+Criar biblioteca de templates.
+
+Categorias:
+
+* Camisas
+* Uniformes
+* Canecas
+* Chinelos
+* Mousepads
+* Copos
+* Brindes
+
+Cada template deve possuir:
+
+id
+nome
+categoria
+preview
+arquivo_base
+camadas_editáveis
+
+Versionamento.
+
+Duplicação.
+
+Favoritos.
+
+Busca avançada.
+
+# MÓDULO 6 — GERADOR PDF EM MASSA
+
+Gerar:
+
+PDF individual
+
+PDF coletivo
+
+PDF por categoria
+
+PDF por tamanho
+
+PDF por equipe
+
+Configurações:
+
+Marcas de corte
+
+Sangria
+
+CMYK
+
+RGB
+
+300 DPI
+
+Compressão inteligente
+
+# MÓDULO 7 — FILA DE PRODUÇÃO
+
+Criar sistema semelhante a ERP industrial.
+
+Etapas:
+
+Arte
+Aprovação
+Impressão
+Costura
+Acabamento
+Expedição
+
+Permitir:
+
+Arrastar e soltar
+
+Kanban
+
+Linha do tempo
+
+Métricas
+
+SLA
+
+Tempo médio
+
+Tempo por operador
+
+# MÓDULO 8 — APROVAÇÃO ONLINE PROFISSIONAL
+
+Criar portal público.
+
+Cliente recebe link.
+
+Pode:
+
+Aprovar
+
+Reprovar
+
+Solicitar alterações
+
+Comentar sobre a arte
+
+Histórico completo.
+
+Controle de versões.
+
+Comparação lado a lado.
+
+# MÓDULO 9 — GESTÃO DE ARQUIVOS
+
+Criar DAM (Digital Asset Management).
+
+Categorias:
+
+Logos
+
+Vetores
+
+Fontes
+
+Mockups
+
+Fotos
+
+Arquivos de produção
+
+Busca:
+
+Nome
+
+Tag
+
+Cliente
+
+Pedido
+
+Categoria
+
+# MÓDULO 10 — DASHBOARD EXECUTIVO
+
+KPIs:
+
+Pedidos em andamento
+
+Produção diária
+
+Faturamento
+
+Lucro
+
+Tempo médio
+
+Aprovações pendentes
+
+Clientes ativos
+
+Clientes inativos
+
+Top clientes
+
+Top produtos
+
+Criar gráficos interativos.
+
+# MÓDULO 11 — FINANCEIRO
+
+Contas a pagar
+
+Contas a receber
+
+Fluxo de caixa
+
+DRE simplificado
+
+Centro de custos
+
+Comissões
+
+Metas
+
+Margem de lucro
+
+# MÓDULO 12 — CRM
+
+Pipeline comercial.
+
+Etapas:
+
+Lead
+
+Contato
+
+Proposta
+
+Negociação
+
+Fechamento
+
+Perdido
+
+Automações.
+
+# MÓDULO 13 — INTEGRAÇÃO CORELDRAW
+
+Criar módulo de integração.
+
+Objetivo:
+
+Exportar dados do sistema para CorelDRAW.
+
+Criar:
+
+JSON
+
+CSV
+
+XML
+
+API REST
+
+Webhook
+
+Permitir que macros VBA consumam os dados.
+
+Estrutura:
+
+Nome
+Número
+Tamanho
+Categoria
+Patrocinador
+
+Gerar automaticamente.
+
+# MÓDULO 14 — API DE AUTOMAÇÃO
+
+Criar API pública.
+
+Endpoints:
+
+Clientes
+
+Pedidos
+
+Templates
+
+Produção
+
+Aprovações
+
+Arquivos
+
+Autenticação JWT.
+
+Rate limit.
+
+Logs.
+
+Auditoria.
+
+# MÓDULO 15 — MULTIEMPRESA
+
+Transformar em SaaS.
+
+Cada empresa possui:
+
+Usuários
+
+Clientes
+
+Pedidos
+
+Arquivos
+
+Financeiro
+
+Produção
+
+Totalmente isolados.
+
+# MÓDULO 16 — IA PARA ARTES
+
+Criar assistente IA.
+
+Funções:
+
+Sugerir layout
+
+Corrigir textos
+
+Detectar erros
+
+Verificar resolução
+
+Verificar sangria
+
+Verificar fontes ausentes
+
+Gerar descrição comercial
+
+# MÓDULO 17 — BANCO DE DADOS
+
+Gerar migrações Supabase completas.
+
+Criar:
+
+RLS
+
+Policies
+
+Indexes
+
+Triggers
+
+Auditoria
+
+Soft Delete
+
+Versionamento
+
+# MÓDULO 18 — PERFORMANCE
+
+Implementar:
+
+Server Components
+
+Streaming
+
+Lazy Loading
+
+Cache
+
+SWR
+
+Paginação
+
+Virtualização
+
+Otimização de consultas
+
+# MÓDULO 19 — SEGURANÇA
+
+RBAC completo.
+
+Perfis:
+
+Administrador
+
+Gerente
+
+Designer
+
+Produção
+
+Financeiro
+
+Vendedor
+
+Cliente
+
+Auditoria completa.
+
+Logs completos.
+
+# MÓDULO 20 — EXPERIÊNCIA DE USUÁRIO
+
+Interface semelhante aos melhores ERPs SaaS do mercado.
+
+Referências:
+
+Monday
+
+ClickUp
+
+Asana
+
+Notion
+
+Trello
+
+Linear
+
+Stripe Dashboard
+
+Criar UX premium.
+
+Design system consistente.
+
+Dark mode.
+
+Responsivo.
+
+PWA.
+
+# RESULTADO ESPERADO
+
+O resultado final deve transformar o sistema atual em uma plataforma capaz de competir com softwares como:
+
+* Sublimax
+* sistemas de sublimação profissionais
+* ERPs gráficos
+* plataformas de produção industrial
+
+Gerando código real, componentes reais, migrations reais, APIs reais, páginas reais e integrações reais, mantendo padrões enterprise-grade.

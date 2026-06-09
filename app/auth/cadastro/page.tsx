@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Loader2, ArrowLeft, Shield, Palette, AlertTriangle } from "lucide-react"
 
-export default function CadastroPage() {
+function CadastroContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const panel = searchParams.get("panel") || "designer"
@@ -355,5 +355,19 @@ export default function CadastroPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function CadastroPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+      }
+    >
+      <CadastroContent />
+    </Suspense>
   )
 }

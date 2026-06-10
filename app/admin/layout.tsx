@@ -19,7 +19,8 @@ import {
   Menu,
   X,
   UserCheck,
-  Palette
+  Palette,
+  DollarSign
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -36,6 +37,7 @@ const adminLinks = [
   { href: "/admin/tecidos", label: "Tecidos", icon: FolderOpen },
   { href: "/admin/tipos-camisa", label: "Tipos de Camisa", icon: Palette },
   { href: "/admin/tipos-short", label: "Tipos de Short", icon: FolderOpen },
+  { href: "/admin/valores", label: "Tabela de Valores", icon: DollarSign },
   { href: "/admin/arquivos", label: "Arquivos", icon: FolderOpen },
   { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/admin/notificacoes", label: "Notificações", icon: Bell },

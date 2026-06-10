@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore, Priority, ServiceType, ModelType, SizeGrid, Player } from '@/lib/store'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +32,9 @@ import {
   Hash,
   Plus,
   Trash2,
-  Shirt
+  Shirt,
+  DollarSign,
+  Layers
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -66,10 +69,51 @@ const priorities: { value: Priority; label: string; color: string }[] = [
   { value: 'urgente', label: 'Urgente', color: 'bg-red-500' },
 ]
 
+interface FabricOption {
+  id: string
+  name: string
+  base_price_complete: number
+  base_price_shirt_only: number
+}
+
+interface ProductTypeOption {
+  id: string
+  name: string
+  additional_price: number
+}
+
+const currency = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
 export function NewOrderForm() {
   const router = useRouter()
   const { addOrder, designers } = useAppStore()
-  
+  const supabase = createClient()
+
+  const [fabrics, setFabrics] = useState<FabricOption[]>([])
+  const [shirtTypes, setShirtTypes] = useState<ProductTypeOption[]>([])
+  const [shortTypes, setShortTypes] = useState<ProductTypeOption[]>([])
+  const [pricing, setPricing] = useState({
+    fabricId: '',
+    shirtTypeId: '',
+    shortTypeId: '',
+    priceMode: 'complete' as 'complete' | 'shirt_only',
+  })
+
+  useEffect(() => {
+    async function loadCatalog() {
+      const [fabricRes, shirtRes, shortRes] = await Promise.all([
+        supabase.from('fabrics').select('id, name, base_price_complete, base_price_shirt_only').eq('is_active', true).order('sort_order'),
+        supabase.from('shirt_types').select('id, name, additional_price').eq('is_active', true).order('sort_order'),
+        supabase.from('short_types').select('id, name, additional_price').eq('is_active', true).order('sort_order'),
+      ])
+      if (fabricRes.data) setFabrics(fabricRes.data as FabricOption[])
+      if (shirtRes.data) setShirtTypes(shirtRes.data as ProductTypeOption[])
+      if (shortRes.data) setShortTypes(shortRes.data as ProductTypeOption[])
+    }
+    loadCatalog()
+  }, [])
+
   const [formData, setFormData] = useState({
     clientName: '',
     teamName: '',
@@ -116,6 +160,23 @@ export function NewOrderForm() {
     const sizes = formData.sizeGrid
     return sizes.PP + sizes.P + sizes.M + sizes.G + sizes.GG + sizes.XG + sizes.XGG + sizes.infantil
   }
+
+  // ----- Cálculo de preço: tecido (base) + modelos (adicionais) -----
+  const selectedFabric = fabrics.find(f => f.id === pricing.fabricId)
+  const selectedShirt = shirtTypes.find(s => s.id === pricing.shirtTypeId)
+  const selectedShort = shortTypes.find(s => s.id === pricing.shortTypeId)
+
+  const basePrice = selectedFabric
+    ? (pricing.priceMode === 'shirt_only'
+        ? selectedFabric.base_price_shirt_only
+        : selectedFabric.base_price_complete)
+    : 0
+  const shirtAdditional = selectedShirt?.additional_price || 0
+  const shortAdditional = selectedShort?.additional_price || 0
+  const modelPrice = shirtAdditional + shortAdditional
+  const unitPrice = basePrice + modelPrice
+  const quantity = calculateTotal()
+  const totalPrice = unitPrice * quantity
 
   const isTeamShirt = formData.serviceType === 'camisa-time'
   const showNumbering = isTeamShirt && formData.hasNumbering
@@ -168,6 +229,12 @@ export function NewOrderForm() {
       hasNumbering: showNumbering,
       players: cleanedPlayers,
       totalQuantity: total || formData.totalQuantity,
+      fabricId: pricing.fabricId || null,
+      fabricName: selectedFabric?.name,
+      basePrice,
+      modelPrice,
+      unitPrice,
+      totalPrice: unitPrice * (total || formData.totalQuantity),
       status: 'novo-pedido',
       files: []
     })
@@ -424,6 +491,133 @@ export function NewOrderForm() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tecido e Valores */}
+      <Card className="glass border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Tecido e Valores
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Tecido (valor base) */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                Tecido (valor base)
+              </Label>
+              <Select
+                value={pricing.fabricId}
+                onValueChange={(value) => setPricing(prev => ({ ...prev, fabricId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar tecido" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fabrics.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name} — {currency(pricing.priceMode === 'shirt_only' ? f.base_price_shirt_only : f.base_price_complete)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Modo de preço */}
+            <div className="space-y-2">
+              <Label>Composição</Label>
+              <Select
+                value={pricing.priceMode}
+                onValueChange={(value) => setPricing(prev => ({ ...prev, priceMode: value as 'complete' | 'shirt_only' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="complete">Conjunto completo</SelectItem>
+                  <SelectItem value="shirt_only">Somente camisa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Modelo de camisa (adicional) */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Shirt className="h-4 w-4 text-muted-foreground" />
+                Modelo de Camisa (adicional)
+              </Label>
+              <Select
+                value={pricing.shirtTypeId}
+                onValueChange={(value) => setPricing(prev => ({ ...prev, shirtTypeId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shirtTypes.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.additional_price > 0 ? `(+${currency(s.additional_price)})` : '(sem adicional)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Modelo de short (adicional) — apenas para conjunto */}
+          {pricing.priceMode === 'complete' && (
+            <div className="space-y-2 md:max-w-xs">
+              <Label className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                Modelo de Short (adicional)
+              </Label>
+              <Select
+                value={pricing.shortTypeId}
+                onValueChange={(value) => setPricing(prev => ({ ...prev, shortTypeId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar short" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shortTypes.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.additional_price > 0 ? `(+${currency(s.additional_price)})` : '(sem adicional)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Resumo do cálculo */}
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <div className="grid gap-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Tecido (base)</span>
+                <span className="font-medium">{currency(basePrice)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Adicional dos modelos</span>
+                <span className="font-medium">{currency(modelPrice)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-2">
+                <span className="text-muted-foreground">Valor por peça</span>
+                <span className="font-semibold">{currency(unitPrice)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Quantidade</span>
+                <span className="font-medium">{quantity}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-2 text-base">
+                <span className="font-semibold">Total do pedido</span>
+                <span className="text-lg font-bold text-primary">{currency(totalPrice)}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Numeração de Time (apenas Camisa de Time) */}
       {isTeamShirt && (

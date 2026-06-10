@@ -110,6 +110,12 @@ export interface Order {
   colorMode?: 'RGB' | 'CMYK' | 'pronto-impressao'
   hasNumbering?: boolean
   players?: Player[]
+  fabricId?: string | null
+  fabricName?: string
+  basePrice?: number
+  modelPrice?: number
+  unitPrice?: number
+  totalPrice?: number
 }
 
 export interface Designer {
@@ -220,6 +226,12 @@ function rowToOrder(row: any): Order {
     colorMode: meta.colorMode,
     hasNumbering: meta.hasNumbering ?? false,
     players: meta.players || [],
+    fabricId: meta.fabricId ?? null,
+    fabricName: meta.fabricName,
+    basePrice: meta.basePrice ?? 0,
+    modelPrice: meta.modelPrice ?? 0,
+    unitPrice: meta.unitPrice ?? 0,
+    totalPrice: meta.totalPrice ?? 0,
   }
 }
 
@@ -248,6 +260,7 @@ function orderToRow(order: Partial<Order>) {
     'model', 'observations', 'comments', 'history', 'files', 'checklist',
     'approvalLink', 'approvedBy', 'clientObservations', 'artDimensions', 'colorMode',
     'hasNumbering', 'players',
+    'fabricId', 'fabricName', 'basePrice', 'modelPrice', 'unitPrice', 'totalPrice',
   ]
   const meta: Record<string, any> = {}
   let hasMeta = false
@@ -552,6 +565,12 @@ function rowMeta(order: Order) {
     colorMode: order.colorMode,
     hasNumbering: order.hasNumbering,
     players: order.players,
+    fabricId: order.fabricId,
+    fabricName: order.fabricName,
+    basePrice: order.basePrice,
+    modelPrice: order.modelPrice,
+    unitPrice: order.unitPrice,
+    totalPrice: order.totalPrice,
   }
 }
 

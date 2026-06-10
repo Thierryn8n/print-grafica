@@ -8,7 +8,18 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Save, DollarSign, Shirt, Layers, Loader2, Check } from "lucide-react"
+import { Save, DollarSign, Shirt, Layers, Loader2, Check, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 
 interface Fabric {
@@ -135,6 +146,21 @@ export default function ValoresPage() {
     return fields.some((field) => edits[editKey(table, id, field)] !== undefined)
   }
 
+  async function deleteRow(table: "fabrics" | "shirt_types" | "short_types", id: string) {
+    const { error } = await supabase.from(table).delete().eq("id", id)
+    if (error) {
+      console.log("[v0] erro ao excluir item:", error.message)
+      return
+    }
+    if (table === "fabrics") {
+      setFabrics((prev) => prev.filter((r) => r.id !== id))
+    } else if (table === "shirt_types") {
+      setShirtTypes((prev) => prev.filter((r) => r.id !== id))
+    } else {
+      setShortTypes((prev) => prev.filter((r) => r.id !== id))
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -217,12 +243,18 @@ export default function ValoresPage() {
                             />
                           </TableCell>
                           <TableCell className="text-right">
-                            <SaveButton
-                              dirty={dirty}
-                              saving={savingKey === rowKey}
-                              saved={savedKey === rowKey}
-                              onClick={() => saveRow("fabrics", fabric.id, fields)}
-                            />
+                            <div className="flex items-center justify-end gap-1">
+                              <SaveButton
+                                dirty={dirty}
+                                saving={savingKey === rowKey}
+                                saved={savedKey === rowKey}
+                                onClick={() => saveRow("fabrics", fabric.id, fields)}
+                              />
+                              <DeleteButton
+                                name={fabric.name}
+                                onConfirm={() => deleteRow("fabrics", fabric.id)}
+                              />
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -260,6 +292,7 @@ export default function ValoresPage() {
                 savedKey={savedKey}
                 saveRow={saveRow}
                 rowHasEdits={rowHasEdits}
+                deleteRow={deleteRow}
               />
             </CardContent>
           </Card>
@@ -284,6 +317,7 @@ export default function ValoresPage() {
                 savedKey={savedKey}
                 saveRow={saveRow}
                 rowHasEdits={rowHasEdits}
+                deleteRow={deleteRow}
               />
             </CardContent>
           </Card>
@@ -378,6 +412,46 @@ interface ProductItem {
   is_active: boolean
 }
 
+function DeleteButton({
+  name,
+  onConfirm,
+}: {
+  name: string
+  onConfirm: () => void
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-muted-foreground hover:text-destructive"
+          aria-label={`Excluir ${name}`}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir item</AlertDialogTitle>
+          <AlertDialogDescription>
+            {`Tem certeza que deseja excluir "${name}"? Esta ação não pode ser desfeita.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 function ProductPriceTable({
   items,
   table,
@@ -387,6 +461,7 @@ function ProductPriceTable({
   savedKey,
   saveRow,
   rowHasEdits,
+  deleteRow,
 }: {
   items: ProductItem[]
   table: "shirt_types" | "short_types"
@@ -396,6 +471,7 @@ function ProductPriceTable({
   savedKey: string | null
   saveRow: (table: "fabrics" | "shirt_types" | "short_types", id: string, fields: string[]) => void
   rowHasEdits: (table: string, id: string, fields: string[]) => boolean
+  deleteRow: (table: "fabrics" | "shirt_types" | "short_types", id: string) => void
 }) {
   const categoryLabels: Record<string, string> = {
     basic: "Básico",
@@ -437,12 +513,18 @@ function ProductPriceTable({
                   />
                 </TableCell>
                 <TableCell className="text-right">
-                  <SaveButton
-                    dirty={dirty}
-                    saving={savingKey === rowKey}
-                    saved={savedKey === rowKey}
-                    onClick={() => saveRow(table, item.id, fields)}
-                  />
+                  <div className="flex items-center justify-end gap-1">
+                    <SaveButton
+                      dirty={dirty}
+                      saving={savingKey === rowKey}
+                      saved={savedKey === rowKey}
+                      onClick={() => saveRow(table, item.id, fields)}
+                    />
+                    <DeleteButton
+                      name={item.name}
+                      onConfirm={() => deleteRow(table, item.id)}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             )

@@ -35,13 +35,24 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import Link from "next/link"
 
-const COLUMNS: OrderStatus[] = ["briefing", "design", "aprovacao", "producao", "finalizado"]
+const COLUMNS: OrderStatus[] = [
+  "novo-pedido",
+  "aguardando-info",
+  "em-criacao",
+  "mockup-pronto",
+  "enviado-aprovacao",
+  "aprovado",
+  "enviado-producao",
+  "sublimacao",
+  "finalizado",
+  "entregue",
+]
 
 export default function KanbanPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [designers, setDesigners] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeColumn, setActiveColumn] = useState<OrderStatus>("briefing")
+  const [activeColumn, setActiveColumn] = useState<OrderStatus>("novo-pedido")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -77,7 +88,7 @@ export default function KanbanPage() {
     }
 
     // Generate approval token when moving to approval
-    if (newStatus === "aprovacao" && !order.approval_token) {
+    if (newStatus === "enviado-aprovacao" && !order.approval_token) {
       updateData.approval_token = crypto.randomUUID()
     }
 
@@ -88,7 +99,7 @@ export default function KanbanPage() {
 
     if (!error) {
       // Log activity
-      await supabase.from("activity_log").insert({
+      await supabase.from("activity_logs").insert({
         order_id: order.id,
         action: "status_changed",
         description: `Status alterado de ${ORDER_STATUS_LABELS[order.status]} para ${ORDER_STATUS_LABELS[newStatus]}`
@@ -324,7 +335,7 @@ export default function KanbanPage() {
                     </div>
                   )}
 
-                  {selectedOrder.approval_token && selectedOrder.status === "aprovacao" && (
+                  {selectedOrder.approval_token && selectedOrder.status === "enviado-aprovacao" && (
                     <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-xs text-muted-foreground mb-1">Link de Aprovação</p>
                       <p className="text-xs break-all text-primary">
@@ -335,7 +346,7 @@ export default function KanbanPage() {
                 </div>
 
                 <div className="pt-4 border-t space-y-2">
-                  {selectedOrder.status !== "finalizado" && (
+                  {COLUMNS.indexOf(selectedOrder.status) < COLUMNS.length - 1 && (
                     <Button
                       className="w-full"
                       onClick={() => {

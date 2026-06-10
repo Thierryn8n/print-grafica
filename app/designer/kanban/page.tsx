@@ -32,12 +32,12 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ColorAnalysisPanel } from "@/components/color/ColorAnalysisPanel"
 
-const COLUMNS: OrderStatus[] = ["design", "aprovacao", "producao", "finalizado"]
+const COLUMNS: OrderStatus[] = ["em-criacao", "enviado-aprovacao", "aprovado", "enviado-producao"]
 
 export default function DesignerKanbanPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeColumn, setActiveColumn] = useState<OrderStatus>("design")
+  const [activeColumn, setActiveColumn] = useState<OrderStatus>("em-criacao")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -69,14 +69,14 @@ export default function DesignerKanbanPage() {
       updated_at: new Date().toISOString(),
     }
     // gera token de aprovação ao mover para aprovação
-    if (newStatus === "aprovacao" && !order.approval_token) {
+    if (newStatus === "enviado-aprovacao" && !order.approval_token) {
       updateData.approval_token = crypto.randomUUID()
     }
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", order.id)
 
     if (!error) {
-      await supabase.from("activity_log").insert({
+      await supabase.from("activity_logs").insert({
         order_id: order.id,
         action: "status_changed",
         description: `Status alterado de ${ORDER_STATUS_LABELS[order.status]} para ${ORDER_STATUS_LABELS[newStatus]}`,
@@ -91,14 +91,14 @@ export default function DesignerKanbanPage() {
     const { error } = await supabase
       .from("orders")
       .update({ 
-        status: "aprovacao",
+        status: "enviado-aprovacao",
         approval_token: crypto.randomUUID(),
         updated_at: new Date().toISOString()
       })
       .eq("id", order.id)
 
     if (!error) {
-      await supabase.from("activity_log").insert({
+      await supabase.from("activity_logs").insert({
         order_id: order.id,
         action: "sent_to_approval",
         description: "Enviado para aprovação do cliente"
@@ -133,7 +133,7 @@ export default function DesignerKanbanPage() {
                   <Eye className="w-4 h-4 mr-2" />
                   Ver detalhes
                 </DropdownMenuItem>
-                {order.status === "design" && (
+                {order.status === "em-criacao" && (
                   <DropdownMenuItem onClick={() => moveToApproval(order)}>
                     <ChevronRight className="w-4 h-4 mr-2" />
                     Enviar para Aprovação
@@ -285,7 +285,7 @@ export default function DesignerKanbanPage() {
                     </div>
                   )}
 
-                  {selectedOrder.approval_token && selectedOrder.status === "aprovacao" && (
+                  {selectedOrder.approval_token && selectedOrder.status === "enviado-aprovacao" && (
                     <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-xs text-muted-foreground mb-1">Link de Aprovação do Cliente</p>
                       <p className="text-xs break-all text-primary">
@@ -304,7 +304,7 @@ export default function DesignerKanbanPage() {
                   />
                 </div>
 
-                {selectedOrder.status === "design" && (
+                {selectedOrder.status === "em-criacao" && (
                   <div className="pt-4 border-t space-y-2">
                     <Button className="w-full" onClick={() => moveToApproval(selectedOrder)}>
                       <ChevronRight className="w-4 h-4 mr-2" />

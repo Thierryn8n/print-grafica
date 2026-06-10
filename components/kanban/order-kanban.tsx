@@ -55,7 +55,7 @@ function OrderKanbanCard({ order, designers, onSelect, isOverlay }: KanbanCardPr
 
   const designer = designers?.find((d) => d.id === order.designer_id)
   const deadline = order.deadline ? new Date(order.deadline) : null
-  const overdue = deadline && isPast(deadline) && !isToday(deadline) && order.status !== "finalizado"
+  const overdue = deadline && isPast(deadline) && !isToday(deadline) && order.status !== "finalizado" && order.status !== "entregue"
   const dueToday = deadline && isToday(deadline)
 
   return (

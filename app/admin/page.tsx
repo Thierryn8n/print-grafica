@@ -49,9 +49,9 @@ export default function AdminDashboardPage() {
     if (orders) {
       setStats({
         totalOrders: orders.length,
-        pendingOrders: orders.filter(o => o.status === "briefing" || o.status === "design").length,
-        inProductionOrders: orders.filter(o => o.status === "producao").length,
-        completedOrders: orders.filter(o => o.status === "finalizado").length,
+        pendingOrders: orders.filter(o => ["novo-pedido", "aguardando-info", "em-criacao"].includes(o.status)).length,
+        inProductionOrders: orders.filter(o => ["enviado-producao", "sublimacao"].includes(o.status)).length,
+        completedOrders: orders.filter(o => ["finalizado", "entregue"].includes(o.status)).length,
         totalClients: 0,
         pendingApprovals: 0
       })

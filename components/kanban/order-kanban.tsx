@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -27,9 +27,12 @@ import {
   PRIORITY_COLORS,
   PRIORITY_LABELS,
 } from "@/lib/types"
-import { Calendar, Package, User, GripVertical, AlertTriangle } from "lucide-react"
+import { Calendar, Package, User, GripVertical, AlertTriangle, ListChecks } from "lucide-react"
 import { format, isPast, isToday } from "date-fns"
 import { cn } from "@/lib/utils"
+import { taskService } from "@/lib/tasks/task-service"
+
+type TaskMeta = { total: number; done: number; labels: { label: string; color: string }[] }
 
 function currency(v?: number | null) {
   if (v == null) return null
@@ -41,9 +44,10 @@ interface KanbanCardProps {
   designers?: Profile[]
   onSelect: (order: Order) => void
   isOverlay?: boolean
+  taskMeta?: TaskMeta
 }
 
-function OrderKanbanCard({ order, designers, onSelect, isOverlay }: KanbanCardProps) {
+function OrderKanbanCard({ order, designers, onSelect, isOverlay, taskMeta }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: order.id,
   })
@@ -111,6 +115,20 @@ function OrderKanbanCard({ order, designers, onSelect, isOverlay }: KanbanCardPr
           </button>
         </div>
 
+        {/* etiquetas das tarefas */}
+        {taskMeta && taskMeta.labels.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {taskMeta.labels.slice(0, 4).map((l) => (
+              <span
+                key={l.label}
+                className="h-1.5 w-7 rounded-full"
+                style={{ backgroundColor: l.color }}
+                aria-hidden
+              />
+            ))}
+          </div>
+        )}
+
         {/* designer (admin) */}
         {designer && (
           <div className="mt-2 flex items-center gap-1.5">
@@ -132,6 +150,19 @@ function OrderKanbanCard({ order, designers, onSelect, isOverlay }: KanbanCardPr
           </span>
 
           <div className="flex items-center gap-2">
+            {taskMeta && taskMeta.total > 0 && (
+              <span
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                  taskMeta.done === taskMeta.total
+                    ? "bg-emerald-500/15 text-emerald-600"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
+                <ListChecks className="h-3 w-3" />
+                {taskMeta.done}/{taskMeta.total}
+              </span>
+            )}
             {currency(order.total_value) && (
               <span className="text-[11px] font-semibold text-primary">
                 {currency(order.total_value)}
@@ -164,9 +195,10 @@ interface ColumnProps {
   orders: Order[]
   designers?: Profile[]
   onSelect: (order: Order) => void
+  taskMetas: Record<string, TaskMeta>
 }
 
-function KanbanColumn({ status, orders, designers, onSelect }: ColumnProps) {
+function KanbanColumn({ status, orders, designers, onSelect, taskMetas }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const dotColor = ORDER_STATUS_COLORS[status]
 
@@ -203,6 +235,7 @@ function KanbanColumn({ status, orders, designers, onSelect }: ColumnProps) {
                 order={order}
                 designers={designers}
                 onSelect={onSelect}
+                taskMeta={taskMetas[order.id]}
               />
             ))
           )}
@@ -222,6 +255,24 @@ interface OrderKanbanProps {
 
 export function OrderKanban({ orders, columns, designers, onMove, onSelect }: OrderKanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [taskMetas, setTaskMetas] = useState<Record<string, TaskMeta>>({})
+
+  const orderIdsKey = orders.map((o) => o.id).join(",")
+
+  useEffect(() => {
+    let active = true
+    const ids = orders.map((o) => o.id)
+    taskService
+      .metaByOrders(ids)
+      .then((meta) => {
+        if (active) setTaskMetas(meta)
+      })
+      .catch((e) => console.log("[v0] erro ao carregar meta de tarefas:", e?.message))
+    return () => {
+      active = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderIdsKey])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -270,6 +321,7 @@ export function OrderKanban({ orders, columns, designers, onMove, onSelect }: Or
             orders={getColumnOrders(status)}
             designers={designers}
             onSelect={onSelect}
+            taskMetas={taskMetas}
           />
         ))}
       </div>

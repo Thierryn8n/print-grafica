@@ -203,22 +203,28 @@ export class ChatService {
     return count || 0
   }
 
-  // Upload de arquivo de mensagem
+  // Upload de arquivo de mensagem (bucket privado -> URL assinada)
   async uploadMessageFile(file: File, bucket: string = 'chat-files'): Promise<string> {
+    const maxBytes = 50 * 1024 * 1024
+    if (file.size > maxBytes) {
+      throw new Error('Arquivo excede o limite de 50MB')
+    }
     const fileName = `${Date.now()}_${file.name}`
     const filePath = `messages/${fileName}`
 
-    const { data, error } = await this.supabase.storage
+    const { error } = await this.supabase.storage
       .from(bucket)
       .upload(filePath, file)
 
     if (error) throw error
 
-    const { data: { publicUrl } } = this.supabase.storage
+    const { data, error: signErr } = await this.supabase.storage
       .from(bucket)
-      .getPublicUrl(filePath)
+      .createSignedUrl(filePath, 60 * 60 * 24 * 365)
 
-    return publicUrl
+    if (signErr) throw signErr
+
+    return data.signedUrl
   }
 
   // Buscar contatos disponíveis para iniciar conversa (designers + admins)

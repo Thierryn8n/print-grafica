@@ -14,7 +14,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  MessageSquare
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils"
 const designerLinks = [
   { href: "/designer", label: "Meus Pedidos", icon: LayoutDashboard },
   { href: "/designer/kanban", label: "Kanban", icon: Columns3 },
+  { href: "/designer/chat", label: "Mensagens", icon: MessageSquare },
   { href: "/designer/arquivos", label: "Meus Arquivos", icon: FolderOpen },
   { href: "/designer/notificacoes", label: "Notificações", icon: Bell },
   { href: "/designer/configuracoes", label: "Configurações", icon: Settings },

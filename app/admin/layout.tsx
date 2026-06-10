@@ -26,7 +26,8 @@ import {
   Tv,
   Fingerprint,
   Clock,
-  MapPin
+  MapPin,
+  MessageSquare
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -44,6 +45,7 @@ type AdminLink = {
 const adminLinks: AdminLink[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/kanban", label: "Kanban", icon: Columns3 },
+  { href: "/admin/chat", label: "Mensagens", icon: MessageSquare },
   { href: "/admin/novo-pedido", label: "Novo Pedido", icon: FilePlus },
   { href: "/admin/formularios", label: "Formulários", icon: UserCheck, table: "forms" },
   { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },

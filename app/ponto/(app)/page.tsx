@@ -33,6 +33,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  ExternalLink,
 } from "lucide-react"
 import {
   PUNCH_LABELS,
@@ -83,10 +84,22 @@ export default function PontoPage() {
   const [adjSaving, setAdjSaving] = useState(false)
   const [adjDone, setAdjDone] = useState(false)
 
+  // Preview do v0 roda em iframe, onde o GPS é bloqueado pelo navegador
+  const [inIframe, setInIframe] = useState(false)
+
   // Relógio ao vivo
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
+  }, [])
+
+  // Detecta iframe no mount
+  useEffect(() => {
+    try {
+      setInIframe(window.self !== window.top)
+    } catch {
+      setInIframe(true)
+    }
   }, [])
 
   const loadData = useCallback(async () => {
@@ -164,15 +177,44 @@ export default function PontoPage() {
 
   function getPosition(): Promise<GeolocationPosition> {
     return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocalização não suportada"))
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        reject(new Error("NO_GEO"))
         return
       }
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: true,
         timeout: 12000,
+        maximumAge: 0,
       })
     })
+  }
+
+  // Detecta se a página está rodando dentro de um iframe (ex: preview do v0),
+  // onde o navegador bloqueia o acesso ao GPS por política de permissões.
+  function isInsideIframe(): boolean {
+    try {
+      return window.self !== window.top
+    } catch {
+      return true
+    }
+  }
+
+  // Mensagem amigável a partir do erro de geolocalização
+  function geoErrorMessage(err: unknown): string {
+    if (isInsideIframe()) {
+      return "O GPS fica bloqueado na pré-visualização. Abra o aplicativo instalado na tela inicial (ou em uma nova aba) para bater o ponto."
+    }
+    const code = (err as GeolocationPositionError)?.code
+    if (code === 1) {
+      return "Permissão de localização negada. Toque no cadeado da barra de endereço e permita o acesso à localização."
+    }
+    if (code === 2) {
+      return "Não foi possível determinar sua localização. Ative o GPS do aparelho e tente novamente."
+    }
+    if (code === 3) {
+      return "Tempo esgotado ao buscar o GPS. Verifique o sinal e tente novamente."
+    }
+    return "Não foi possível obter sua localização. Ative o GPS e permita o acesso."
   }
 
   async function handlePunch() {
@@ -212,7 +254,7 @@ export default function PontoPage() {
       setGeoStatus("error")
       setFeedback({
         type: "err",
-        msg: "Não foi possível obter sua localização. Ative o GPS e permita o acesso.",
+        msg: geoErrorMessage(err),
       })
       setPunching(false)
       return
@@ -320,6 +362,29 @@ export default function PontoPage() {
       </header>
 
       <div className="max-w-md mx-auto px-4 space-y-5 mt-5">
+        {/* Aviso de iframe: GPS bloqueado no preview */}
+        {inIframe && (
+          <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Abra o app para bater o ponto</p>
+              <p className="text-xs text-muted-foreground mt-1 text-pretty">
+                Na pré-visualização o GPS fica bloqueado pelo navegador. Abra o aplicativo em uma aba
+                própria (ou instale na tela inicial) para liberar a localização.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-3 gap-2"
+                onClick={() => window.open(window.location.href, "_blank")}
+              >
+                <ExternalLink className="w-4 h-4" />
+                Abrir em nova aba
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Relógio */}
         <Card className="border-0 bg-card shadow-sm">
           <CardContent className="pt-6 pb-6 text-center">

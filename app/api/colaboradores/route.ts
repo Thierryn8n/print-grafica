@@ -96,38 +96,6 @@ export async function POST(request: Request) {
   return NextResponse.json({ id: created.user.id }, { status: 201 })
 }
 
-// PATCH: atualiza dados ou senha de um colaborador
-export async function PATCH(request: Request) {
-  const auth = await requireAdmin()
-  if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status })
-
-  const body = await request.json()
-  const id = body.id
-  if (!id) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 })
-
-  const admin = createAdminClient()
-  const updates: Record<string, unknown> = {}
-  if (body.fullName !== undefined) updates.full_name = body.fullName.trim()
-  if (body.phone !== undefined) updates.phone = onlyDigits(body.phone)
-  if (body.status !== undefined) updates.status = body.status
-
-  if (Object.keys(updates).length > 0) {
-    const { error } = await admin.from("profiles").update(updates).eq("id", id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  // Atualização de senha (opcional)
-  if (body.password) {
-    if (body.password.length < 6) {
-      return NextResponse.json({ error: "A senha deve ter ao menos 6 caracteres" }, { status: 400 })
-    }
-    const { error } = await admin.auth.admin.updateUserById(id, { password: body.password })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ ok: true })
-}
-
 // DELETE: remove colaborador
 export async function DELETE(request: Request) {
   const auth = await requireAdmin()

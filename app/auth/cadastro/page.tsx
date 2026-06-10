@@ -93,7 +93,7 @@ function CadastroContent() {
 
     const supabase = createClient()
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -117,23 +117,8 @@ function CadastroContent() {
       return
     }
 
-    // Criar perfil manualmente após signup (trigger foi removido temporariamente)
-    if (signUpData.user) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          id: signUpData.user.id,
-          email: signUpData.user.email,
-          full_name: fullName,
-          phone: phone.replace(/\D/g, ""),
-          role: isAdmin ? "admin" : "designer",
-          status: "pending"
-        })
-
-      if (profileError) {
-        console.error("Erro ao criar perfil:", profileError)
-      }
-    }
+    // O perfil é criado automaticamente pelo trigger handle_new_user,
+    // que também aplica a auto-aprovação do primeiro administrador.
 
     router.push(`/auth/cadastro-sucesso?panel=${panel}`)
   }

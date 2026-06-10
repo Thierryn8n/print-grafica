@@ -130,6 +130,7 @@ export interface Order {
   totalPrice?: number
   downPaymentPercent?: number
   downPayment?: number
+  trackingToken?: string
 }
 
 export interface Designer {
@@ -233,6 +234,7 @@ function rowToOrder(row: any): Order {
     createdAt: row.created_at || new Date().toISOString(),
     updatedAt: row.updated_at || new Date().toISOString(),
     approvalLink: meta.approvalLink || (row.approval_token ? `/aprovacao/${row.id}` : undefined),
+    trackingToken: row.tracking_token || undefined,
     approvedAt: row.approved_at || meta.approvedAt,
     approvedBy: meta.approvedBy,
     clientObservations: meta.clientObservations,

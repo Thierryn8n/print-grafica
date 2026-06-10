@@ -43,6 +43,7 @@ import {
   Scissors,
   ArrowRightCircle,
   Receipt,
+  Check,
   X
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -107,6 +108,22 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
       alert('Não foi possível gerar o recibo.')
     }
     setGeneratingReceipt(false)
+  }
+
+  const [linkCopied, setLinkCopied] = useState(false)
+  const handleCopyTrackingLink = async () => {
+    if (!order.trackingToken) {
+      alert('Este pedido ainda não possui link de acompanhamento. Atualize a página.')
+      return
+    }
+    const url = `${window.location.origin}/acompanhar/${order.trackingToken}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2500)
+    } catch {
+      window.prompt('Copie o link de acompanhamento:', url)
+    }
   }
 
   const handleAddComment = () => {
@@ -280,6 +297,14 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
                       >
                         <Receipt className="h-4 w-4" />
                         {generatingReceipt ? 'Gerando...' : 'Gerar Recibo (PDF)'}
+                      </Button>
+                      <Button
+                        onClick={handleCopyTrackingLink}
+                        variant="outline"
+                        className="w-full gap-2"
+                      >
+                        {linkCopied ? <Check className="h-4 w-4 text-success" /> : <Link2 className="h-4 w-4" />}
+                        {linkCopied ? 'Link copiado!' : 'Copiar link de acompanhamento'}
                       </Button>
                     </div>
                   </div>

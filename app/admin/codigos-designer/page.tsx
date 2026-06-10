@@ -17,7 +17,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { KeyRound, Plus, Copy, Check, Ban, Loader2, Palette } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { KeyRound, Plus, Copy, Check, Ban, Loader2, Palette, LinkIcon, Share2 } from "lucide-react"
+
+const DESIGNER_LEVELS: Record<number, { label: string; description: string }> = {
+  1: { label: "Designer 1", description: "Arte" },
+  2: { label: "Designer 2", description: "Exportação" },
+  3: { label: "Designer 3", description: "Finalização" },
+}
 
 interface InviteCode {
   id: string
@@ -28,6 +41,7 @@ interface InviteCode {
   expires_at: string | null
   is_active: boolean
   created_at: string
+  designer_level: number | null
 }
 
 function generateCode() {
@@ -45,6 +59,13 @@ export default function CodigosDesignerPage() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null)
+  const [newLevel, setNewLevel] = useState("1")
+
+  function inviteLink(code: string) {
+    if (typeof window === "undefined") return `/convite-designer/${code}`
+    return `${window.location.origin}/convite-designer/${code}`
+  }
 
   useEffect(() => {
     loadCodes()
@@ -68,10 +89,23 @@ export default function CodigosDesignerPage() {
     const code = generateCode()
     const { data: userData } = await supabase.auth.getUser()
 
+    // Vincula o convite à gráfica do admin logado, para o designer entrar na empresa certa
+    let companyId: string | null = null
+    if (userData.user?.id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", userData.user.id)
+        .maybeSingle()
+      companyId = profile?.company_id ?? null
+    }
+
     const { error } = await supabase.from("invite_codes").insert({
       code,
       role: "designer",
       created_by: userData.user?.id ?? null,
+      company_id: companyId,
+      designer_level: Number(newLevel),
     })
 
     if (error) {
@@ -80,6 +114,22 @@ export default function CodigosDesignerPage() {
       await loadCodes()
     }
     setGenerating(false)
+  }
+
+  async function handleCopyLink(code: string, id: string) {
+    try {
+      await navigator.clipboard.writeText(inviteLink(code))
+      setCopiedLinkId(id)
+      setTimeout(() => setCopiedLinkId(null), 2000)
+    } catch (err) {
+      console.log("[v0] erro ao copiar link:", err)
+    }
+  }
+
+  function shareWhatsApp(code: string, level: number | null) {
+    const fn = level && DESIGNER_LEVELS[level] ? ` como ${DESIGNER_LEVELS[level].label} (${DESIGNER_LEVELS[level].description})` : ""
+    const msg = `Olá! Você foi convidado para entrar na nossa gráfica${fn}. Cadastre-se por este link: ${inviteLink(code)}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank")
   }
 
   async function handleDeactivate(id: string) {
@@ -123,13 +173,28 @@ export default function CodigosDesignerPage() {
             Códigos de Convite
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gere códigos para que designers se cadastrem e sejam vinculados automaticamente à sua gráfica.
+            Escolha a classificação, gere o convite e envie o link ao designer. Ao se cadastrar pelo
+            link, ele já entra vinculado à sua gráfica e com a função definida.
           </p>
         </div>
-        <Button onClick={handleGenerate} disabled={generating} className="gap-2">
-          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-          Gerar novo código
-        </Button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Select value={newLevel} onValueChange={setNewLevel}>
+            <SelectTrigger className="sm:w-[200px]">
+              <SelectValue placeholder="Classificação" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(DESIGNER_LEVELS).map(([value, info]) => (
+                <SelectItem key={value} value={value}>
+                  {info.label} — {info.description}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleGenerate} disabled={generating} className="gap-2">
+            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            Gerar convite
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -176,6 +241,7 @@ export default function CodigosDesignerPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Código</TableHead>
+                  <TableHead>Classificação</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Criado em</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -189,6 +255,15 @@ export default function CodigosDesignerPage() {
                     <TableRow key={code.id}>
                       <TableCell className="font-mono font-semibold tracking-widest">{code.code}</TableCell>
                       <TableCell>
+                        {code.designer_level && DESIGNER_LEVELS[code.designer_level] ? (
+                          <Badge variant="outline">
+                            {DESIGNER_LEVELS[code.designer_level].label} · {DESIGNER_LEVELS[code.designer_level].description}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant={status.variant}>{status.label}</Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -199,9 +274,34 @@ export default function CodigosDesignerPage() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            onClick={() => handleCopyLink(code.code, code.id)}
+                            aria-label={`Copiar link de convite ${code.code}`}
+                            disabled={!canManage}
+                            title="Copiar link do convite"
+                          >
+                            {copiedLinkId === code.id ? (
+                              <Check className="w-4 h-4 text-success" />
+                            ) : (
+                              <LinkIcon className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => shareWhatsApp(code.code, code.designer_level)}
+                            aria-label={`Compartilhar convite ${code.code} no WhatsApp`}
+                            disabled={!canManage}
+                            title="Enviar por WhatsApp"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => handleCopy(code.code, code.id)}
                             aria-label={`Copiar código ${code.code}`}
                             disabled={!canManage}
+                            title="Copiar código"
                           >
                             {copiedId === code.id ? (
                               <Check className="w-4 h-4 text-success" />

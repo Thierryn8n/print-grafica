@@ -1,31 +1,6 @@
 // Sistema de Upload de Arquivos Robusto
 import { createClient } from "@/lib/supabase/client"
 
-// Limite atual: 50MB (plano gratuito Supabase). Subir para 100MB ao ativar o plano Pro.
-export const MAX_FILE_SIZE_MB = 50
-
-// Extensões aceitas para arquivos de design / exportação
-export const DESIGN_FILE_EXTENSIONS = [
-  'cdr', 'ai', 'eps', 'psd', 'pdf', 'svg',
-  'png', 'jpg', 'jpeg', 'webp', 'tiff', 'tif',
-  'zip', 'rar', '7z',
-]
-
-export function getFileExtension(name: string): string {
-  const parts = name.split('.')
-  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
-}
-
-export function isAllowedDesignFile(name: string): boolean {
-  return DESIGN_FILE_EXTENSIONS.includes(getFileExtension(name))
-}
-
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
 export interface UploadedFile {
   id: string
   name: string
@@ -127,11 +102,11 @@ export class FileUploadService {
 
     if (error) throw error
 
-    // Buckets privados: gera URL assinada (válida por 1 ano; o link de acesso é controlado pela app)
-    const { data: signed } = await this.supabase.storage
+    const { data: { publicUrl } } = this.supabase.storage
       .from(bucket)
-      .createSignedUrl(filePath, 60 * 60 * 24 * 365)
+      .getPublicUrl(filePath)
 
+    // Simular progresso (Supabase SDK não suporta onUploadProgress diretamente)
     if (onProgress) {
       onProgress(100)
     }
@@ -139,21 +114,12 @@ export class FileUploadService {
     return {
       id: data.path,
       name: file.name,
-      url: signed?.signedUrl ?? '',
+      url: publicUrl,
       size: file.size,
       type: file.type,
       version: 1,
       uploadedAt: new Date().toISOString()
     }
-  }
-
-  // Gera uma nova URL assinada para um arquivo já armazenado (para download posterior)
-  async getSignedUrl(bucket: string, path: string, expiresInSeconds = 60 * 60): Promise<string> {
-    const { data, error } = await this.supabase.storage
-      .from(bucket)
-      .createSignedUrl(path, expiresInSeconds)
-    if (error) throw error
-    return data.signedUrl
   }
 
   // Upload de múltiplos arquivos
@@ -181,21 +147,13 @@ export class FileUploadService {
     if (error) throw error
   }
 
-  // Criar nova versão de arquivo (salva metadados de storage para buckets privados)
+  // Criar nova versão de arquivo
   async createFileVersion(
     orderId: string,
     file: File,
     bucket: string,
-    path: string,
-    options?: { kind?: 'arte' | 'exportacao'; uploadedByName?: string }
+    path: string
   ): Promise<UploadedFile> {
-    if (!isAllowedDesignFile(file.name)) {
-      throw new Error(`Tipo de arquivo não permitido: .${getFileExtension(file.name)}`)
-    }
-    if (!this.validateFileSize(file, MAX_FILE_SIZE_MB)) {
-      throw new Error(`Arquivo excede o limite de ${MAX_FILE_SIZE_MB}MB`)
-    }
-
     // Buscar última versão
     const { data: existingFiles } = await this.supabase
       .from('order_files')
@@ -210,8 +168,6 @@ export class FileUploadService {
     // Upload do novo arquivo
     const uploadedFile = await this.uploadFile(file, bucket, path)
 
-    const userId = (await this.supabase.auth.getUser()).data.user?.id
-
     // Salvar no banco
     const { data, error } = await this.supabase
       .from('order_files')
@@ -222,11 +178,7 @@ export class FileUploadService {
         file_type: file.type,
         file_size: file.size,
         version: newVersion,
-        storage_path: uploadedFile.id,
-        bucket,
-        kind: options?.kind ?? 'arte',
-        uploaded_by: userId,
-        uploaded_by_name: options?.uploadedByName,
+        uploaded_by: (await this.supabase.auth.getUser()).data.user?.id
       })
       .select()
       .single()
@@ -241,7 +193,7 @@ export class FileUploadService {
   }
 
   // Buscar histórico de versões de um arquivo
-  async getFileVersions(orderId: string): Promise<(UploadedFile & { bucket: string; storagePath: string; kind: string; uploadedByName?: string })[]> {
+  async getFileVersions(orderId: string): Promise<UploadedFile[]> {
     const { data, error } = await this.supabase
       .from('order_files')
       .select('*')
@@ -257,21 +209,8 @@ export class FileUploadService {
       size: file.file_size || 0,
       type: file.file_type,
       version: file.version,
-      uploadedAt: file.created_at,
-      bucket: file.bucket || 'design-files',
-      storagePath: file.storage_path || '',
-      kind: file.kind || 'arte',
-      uploadedByName: file.uploaded_by_name || undefined,
+      uploadedAt: file.created_at
     })) || []
-  }
-
-  // Deletar registro de arquivo (e do storage)
-  async deleteOrderFile(fileId: string, bucket: string, storagePath: string): Promise<void> {
-    if (storagePath) {
-      await this.supabase.storage.from(bucket).remove([storagePath])
-    }
-    const { error } = await this.supabase.from('order_files').delete().eq('id', fileId)
-    if (error) throw error
   }
 
   // Restaurar versão anterior

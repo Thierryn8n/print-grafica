@@ -5,7 +5,7 @@ import { chatService, type Conversation, type Message } from "@/lib/chat/chat-se
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { Send, Plus, ArrowLeft, MessageSquare, X, Search, Paperclip, FileText, Loader2 } from "lucide-react"
+import { Send, Plus, ArrowLeft, MessageSquare, X, Search } from "lucide-react"
 
 interface Contact {
   id: string
@@ -28,8 +28,6 @@ export function ChatPanel({ userId }: ChatPanelProps) {
   const [showNew, setShowNew] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [contactSearch, setContactSearch] = useState("")
-  const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const activeConv = conversations.find((c) => c.id === activeId)
@@ -123,24 +121,6 @@ export function ChatPanel({ userId }: ChatPanelProps) {
 
   function otherParticipant(conv?: Conversation) {
     return conv?.participants?.find((p) => p.id !== userId)
-  }
-
-  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (e.target) e.target.value = ""
-    if (!file || !activeId || uploading) return
-    setUploading(true)
-    try {
-      const url = await chatService.uploadMessageFile(file)
-      const isImage = file.type.startsWith("image/")
-      await chatService.sendMessage(activeId, userId, file.name, isImage ? "image" : "file", url)
-      loadConversations()
-    } catch (err: any) {
-      console.log("[v0] erro ao enviar arquivo:", err?.message)
-      alert(err?.message ?? "Erro ao enviar arquivo")
-    } finally {
-      setUploading(false)
-    }
   }
 
   function formatTime(iso: string) {
@@ -243,29 +223,7 @@ export function ChatPanel({ userId }: ChatPanelProps) {
                           : "bg-card border border-border text-foreground rounded-bl-sm",
                       )}
                     >
-                      {msg.message_type === "image" && msg.file_url ? (
-                        <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={msg.file_url || "/placeholder.svg"}
-                            alt={msg.content}
-                            className="max-h-48 rounded-lg mb-1"
-                          />
-                          <span className="text-xs underline">{msg.content}</span>
-                        </a>
-                      ) : msg.message_type === "file" && msg.file_url ? (
-                        <a
-                          href={msg.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 underline"
-                        >
-                          <FileText className="w-4 h-4 shrink-0" />
-                          {msg.content}
-                        </a>
-                      ) : (
-                        msg.content
-                      )}
+                      {msg.content}
                     </div>
                     <span className="text-[10px] text-muted-foreground mt-0.5 px-1">
                       {formatTime(msg.created_at)}
@@ -276,22 +234,6 @@ export function ChatPanel({ userId }: ChatPanelProps) {
             </div>
 
             <form onSubmit={handleSend} className="p-3 border-t border-border flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileSelected}
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="Anexar arquivo"
-              >
-                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
-              </Button>
               <Input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}

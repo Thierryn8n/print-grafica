@@ -8,21 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, Clock, Plus } from "lucide-react"
-
-const DESIGNER_LEVELS: Record<number, { label: string; description: string }> = {
-  1: { label: "Designer 1", description: "Arte" },
-  2: { label: "Designer 2", description: "Exportação" },
-  3: { label: "Designer 3", description: "Finalização" },
-}
 
 interface Designer {
   id: string
@@ -32,7 +19,6 @@ interface Designer {
   role: string
   status: string
   avatar_url: string | null
-  designer_level: number | null
   created_at: string
 }
 
@@ -45,8 +31,7 @@ export default function DesignersPage() {
   const [formData, setFormData] = useState({
     email: "",
     full_name: "",
-    phone: "",
-    designer_level: "1",
+    phone: ""
   })
 
   useEffect(() => {
@@ -86,13 +71,12 @@ export default function DesignersPage() {
         full_name: formData.full_name,
         phone: formData.phone,
         role: "designer",
-        status: "pending",
-        designer_level: Number(formData.designer_level),
+        status: "pending"
       })
     }
     
     setDialogOpen(false)
-    setFormData({ email: "", full_name: "", phone: "", designer_level: "1" })
+    setFormData({ email: "", full_name: "", phone: "" })
     loadDesigners()
   }
 
@@ -174,28 +158,6 @@ export default function DesignersPage() {
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="designer_level">Classificação *</Label>
-        <Select
-          value={formData.designer_level}
-          onValueChange={(v) => setFormData({ ...formData, designer_level: v })}
-        >
-          <SelectTrigger id="designer_level">
-            <SelectValue placeholder="Selecione o nível" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(DESIGNER_LEVELS).map(([level, info]) => (
-              <SelectItem key={level} value={level}>
-                {info.label} — {info.description}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          Define o papel do designer no fluxo: arte, exportação ou finalização.
-        </p>
-      </div>
-
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
           Cancelar
@@ -253,7 +215,6 @@ export default function DesignersPage() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Classificação</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Cadastrado em</TableHead>
@@ -265,16 +226,6 @@ export default function DesignersPage() {
               <TableRow key={designer.id}>
                 <TableCell className="font-medium">{designer.full_name}</TableCell>
                 <TableCell>{designer.email}</TableCell>
-                <TableCell>
-                  {designer.designer_level && DESIGNER_LEVELS[designer.designer_level] ? (
-                    <Badge variant="outline">
-                      {DESIGNER_LEVELS[designer.designer_level].label} ·{" "}
-                      {DESIGNER_LEVELS[designer.designer_level].description}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
                 <TableCell>{designer.phone || "-"}</TableCell>
                 <TableCell>{getStatusBadge(designer.status)}</TableCell>
                 <TableCell>{new Date(designer.created_at).toLocaleDateString('pt-BR')}</TableCell>

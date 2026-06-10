@@ -34,7 +34,6 @@ import {
   MessageSquare,
   History,
   CheckSquare,
-  ListTodo,
   Upload,
   Link2,
   Copy,
@@ -53,8 +52,6 @@ import { cn } from '@/lib/utils'
 import { generateReceiptPdf } from '@/lib/receipt'
 import { getMyCompany } from '@/lib/company'
 import { createClient } from '@/lib/supabase/client'
-import { OrderFilesTab } from '@/components/order/order-files-tab'
-import { OrderTasksTab } from '@/components/order/order-tasks-tab'
 
 interface OrderModalProps {
   order: Order
@@ -213,10 +210,6 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
               <TabsTrigger value="checklist" className="gap-2">
                 <CheckSquare className="h-4 w-4" />
                 Checklist
-              </TabsTrigger>
-              <TabsTrigger value="tarefas" className="gap-2">
-                <ListTodo className="h-4 w-4" />
-                Tarefas
               </TabsTrigger>
               <TabsTrigger value="comentarios" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
@@ -614,15 +607,40 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
             </TabsContent>
 
             <TabsContent value="arquivos" className="p-6 pt-4 m-0">
-              <OrderFilesTab
-                order={order}
-                currentUserName={currentUser?.name}
-                onPassStage={passOrderTo}
-              />
-            </TabsContent>
+              <div className="space-y-4">
+                {/* Upload Area */}
+                <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                  <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                  <p className="font-medium">Arraste arquivos aqui ou clique para selecionar</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    EPS, PSD, AI, CDR, PDF, PNG, JPG, SVG, WEBP, ZIP, RAR
+                  </p>
+                </div>
 
-            <TabsContent value="tarefas" className="p-6 pt-4 m-0">
-              <OrderTasksTab orderId={order.id} currentUserName={currentUser?.name} />
+                {/* Files List */}
+                {order.files.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhum arquivo anexado
+                  </p>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {order.files.map((file) => (
+                      <div key={file.id} className="bg-muted/50 rounded-xl p-4 flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{file.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(parseISO(file.uploadedAt), "dd/MM/yyyy", { locale: ptBR })}
+                            {file.version && ` • Versão ${file.version}`}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </ScrollArea>
         </Tabs>

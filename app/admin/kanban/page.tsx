@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { OrderKanban } from "@/components/kanban/order-kanban"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -191,7 +192,8 @@ export default function KanbanPage() {
         <div>
           <h1 className="text-xl lg:text-2xl font-bold text-foreground">Kanban</h1>
           <p className="text-sm text-muted-foreground">
-            Arraste os pedidos entre as colunas
+            <span className="hidden lg:inline">Arraste os pedidos entre as colunas para mudar o status</span>
+            <span className="lg:hidden">Toque em um pedido para ver detalhes e avançar</span>
           </p>
         </div>
         <Button asChild size="sm">
@@ -246,30 +248,18 @@ export default function KanbanPage() {
         )}
       </div>
 
-      {/* Desktop: Multi-column Kanban */}
-      <div className="hidden lg:grid lg:grid-cols-5 gap-4">
-        {COLUMNS.map((status) => {
-          const columnOrders = getColumnOrders(status)
-          return (
-            <div key={status} className="flex flex-col">
-              <div className={`p-3 rounded-t-lg ${ORDER_STATUS_COLORS[status]}`}>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-white text-sm">
-                    {ORDER_STATUS_LABELS[status]}
-                  </h3>
-                  <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">
-                    {columnOrders.length}
-                  </span>
-                </div>
-              </div>
-              <div className="flex-1 bg-muted/30 rounded-b-lg p-2 space-y-2 min-h-[300px]">
-                {columnOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            </div>
-          )
-        })}
+      {/* Desktop: Multi-column Kanban com drag-and-drop */}
+      <div className="hidden lg:block">
+        <OrderKanban
+          orders={orders}
+          columns={COLUMNS}
+          designers={designers}
+          onMove={(order, status) => moveOrder(order, status)}
+          onSelect={(order) => {
+            setSelectedOrder(order)
+            setSheetOpen(true)
+          }}
+        />
       </div>
 
       {/* Order Detail Sheet */}

@@ -27,7 +27,11 @@ import {
   Fingerprint,
   Clock,
   MapPin,
-  MessageSquare
+  MessageSquare,
+  ChevronDown,
+  Contact,
+  Boxes,
+  Factory
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -42,31 +46,82 @@ type AdminLink = {
   filter?: { column: string; value: string }
 }
 
-const adminLinks: AdminLink[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/kanban", label: "Kanban", icon: Columns3 },
-  { href: "/admin/chat", label: "Mensagens", icon: MessageSquare },
-  { href: "/admin/novo-pedido", label: "Novo Pedido", icon: FilePlus },
-  { href: "/admin/formularios", label: "Formulários", icon: UserCheck, table: "forms" },
-  { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },
-  { href: "/admin/clientes", label: "Clientes", icon: Users, table: "clients" },
-  { href: "/admin/designers", label: "Designers", icon: Palette, table: "profiles", filter: { column: "role", value: "designer" } },
-  { href: "/admin/codigos-designer", label: "Códigos de Designer", icon: KeyRound },
-  { href: "/admin/colaboradores", label: "Colaboradores (Ponto)", icon: Fingerprint, table: "profiles", filter: { column: "role", value: "colaborador" } },
-  { href: "/admin/ponto-config", label: "Config. de Ponto", icon: MapPin },
-  { href: "/admin/ponto-relatorios", label: "Relatórios de Ponto", icon: Clock },
-  { href: "/admin/costura", label: "Fila de Costura", icon: Scissors, table: "orders", filter: { column: "production_stage", value: "costura" } },
-  { href: "/telao", label: "Telão (TV)", icon: Tv },
-  { href: "/admin/cores", label: "Cores Sublimadas", icon: Palette, table: "sublimated_color_samples" },
-  { href: "/admin/tecidos", label: "Tecidos", icon: FolderOpen, table: "fabrics" },
-  { href: "/admin/tipos-camisa", label: "Tipos de Camisa", icon: Palette, table: "shirt_types" },
-  { href: "/admin/tipos-short", label: "Tipos de Short", icon: FolderOpen, table: "short_types" },
-  { href: "/admin/valores", label: "Tabela de Valores", icon: DollarSign, table: "fabrics" },
-  { href: "/admin/arquivos", label: "Arquivos", icon: FolderOpen, table: "order_files" },
-  { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
-  { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
-  { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
+type AdminGroup = {
+  id: string
+  label: string
+  icon: typeof LayoutDashboard
+  links: AdminLink[]
+}
+
+const adminGroups: AdminGroup[] = [
+  {
+    id: "principal",
+    label: "Principal",
+    icon: LayoutDashboard,
+    links: [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/kanban", label: "Kanban", icon: Columns3 },
+      { href: "/admin/chat", label: "Mensagens", icon: MessageSquare },
+      { href: "/admin/novo-pedido", label: "Novo Pedido", icon: FilePlus },
+    ],
+  },
+  {
+    id: "pessoas",
+    label: "Pessoas",
+    icon: Contact,
+    links: [
+      { href: "/admin/clientes", label: "Clientes", icon: Users, table: "clients" },
+      { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },
+      { href: "/admin/designers", label: "Designers", icon: Palette, table: "profiles", filter: { column: "role", value: "designer" } },
+      { href: "/admin/codigos-designer", label: "Códigos de Designer", icon: KeyRound },
+    ],
+  },
+  {
+    id: "ponto",
+    label: "Ponto",
+    icon: Fingerprint,
+    links: [
+      { href: "/admin/colaboradores", label: "Colaboradores", icon: Fingerprint, table: "profiles", filter: { column: "role", value: "colaborador" } },
+      { href: "/admin/ponto-config", label: "Config. de Ponto", icon: MapPin },
+      { href: "/admin/ponto-relatorios", label: "Relatórios de Ponto", icon: Clock },
+    ],
+  },
+  {
+    id: "producao",
+    label: "Produção",
+    icon: Factory,
+    links: [
+      { href: "/admin/formularios", label: "Formulários", icon: UserCheck, table: "forms" },
+      { href: "/admin/costura", label: "Fila de Costura", icon: Scissors, table: "orders", filter: { column: "production_stage", value: "costura" } },
+      { href: "/telao", label: "Telão (TV)", icon: Tv },
+      { href: "/admin/arquivos", label: "Arquivos", icon: FolderOpen, table: "order_files" },
+    ],
+  },
+  {
+    id: "catalogo",
+    label: "Catálogo",
+    icon: Boxes,
+    links: [
+      { href: "/admin/cores", label: "Cores Sublimadas", icon: Palette, table: "sublimated_color_samples" },
+      { href: "/admin/tecidos", label: "Tecidos", icon: FolderOpen, table: "fabrics" },
+      { href: "/admin/tipos-camisa", label: "Tipos de Camisa", icon: Palette, table: "shirt_types" },
+      { href: "/admin/tipos-short", label: "Tipos de Short", icon: FolderOpen, table: "short_types" },
+      { href: "/admin/valores", label: "Tabela de Valores", icon: DollarSign, table: "fabrics" },
+    ],
+  },
+  {
+    id: "sistema",
+    label: "Sistema",
+    icon: Settings,
+    links: [
+      { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
+      { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
+      { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
+    ],
+  },
 ]
+
+const adminLinks: AdminLink[] = adminGroups.flatMap((group) => group.links)
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -76,6 +131,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [emptyTables, setEmptyTables] = useState<Record<string, boolean>>({})
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
+
+  // Abre automaticamente o grupo que contém a página atual
+  useEffect(() => {
+    const activeGroup = adminGroups.find((group) =>
+      group.links.some((link) => link.href === pathname)
+    )
+    if (activeGroup) {
+      setOpenGroups((prev) => ({ ...prev, [activeGroup.id]: true }))
+    }
+  }, [pathname])
+
+  function toggleGroup(id: string) {
+    setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
 
   useEffect(() => {
     checkAuth()
@@ -231,39 +301,83 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Navigation */}
         <nav className="flex-1 p-2 overflow-y-auto">
-          {adminLinks.map((link) => {
-            const isActive = pathname === link.href
-            const Icon = link.icon
+          {adminGroups.map((group) => {
+            const GroupIcon = group.icon
+            const isOpen = openGroups[group.id] ?? false
+            const groupHasActive = group.links.some((link) => link.href === pathname)
+            const groupHasEmpty = group.links.some((link) => emptyTables[link.href])
+            const groupHasUnread =
+              group.links.some((link) => link.href === "/admin/notificacoes") && unreadNotifications > 0
+
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              <div key={group.id} className="mb-1">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.id)}
+                  aria-expanded={isOpen}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                    groupHasActive && !isOpen
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <GroupIcon className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-sm font-semibold">{group.label}</span>
+                  {!isOpen && (groupHasEmpty || groupHasUnread) && (
+                    <span className="flex-shrink-0 relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                    </span>
+                  )}
+                  <ChevronDown
+                    className={cn(
+                      "ml-auto w-4 h-4 flex-shrink-0 transition-transform duration-200",
+                      isOpen && "rotate-180"
+                    )}
+                  />
+                </button>
+
+                {isOpen && (
+                  <div className="mt-1 ml-3 pl-3 border-l border-sidebar-border flex flex-col gap-1">
+                    {group.links.map((link) => {
+                      const isActive = pathname === link.href
+                      const Icon = link.icon
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setSidebarOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                            isActive
+                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                              : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          )}
+                        >
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          <span className="text-sm font-medium">{link.label}</span>
+                          {emptyTables[link.href] && (
+                            <span
+                              className="ml-auto flex-shrink-0 relative flex h-2.5 w-2.5"
+                              title="Esta tabela está vazia"
+                            >
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+                              <span className="sr-only">Tabela vazia</span>
+                            </span>
+                          )}
+                          {link.href === "/admin/notificacoes" && unreadNotifications > 0 && (
+                            <span className="ml-auto w-5 h-5 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
+                              {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                            </span>
+                          )}
+                        </Link>
+                      )
+                    })}
+                  </div>
                 )}
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm font-medium">{link.label}</span>
-                {emptyTables[link.href] && (
-                  <span
-                    className="ml-auto flex-shrink-0 relative flex h-2.5 w-2.5"
-                    title="Esta tabela está vazia"
-                  >
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
-                    <span className="sr-only">Tabela vazia</span>
-                  </span>
-                )}
-                {link.href === "/admin/notificacoes" && unreadNotifications > 0 && (
-                  <span className="ml-auto w-5 h-5 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
-                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                  </span>
-                )}
-              </Link>
+              </div>
             )
           })}
         </nav>

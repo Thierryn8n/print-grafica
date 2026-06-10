@@ -23,7 +23,10 @@ import {
   DollarSign,
   KeyRound,
   Scissors,
-  Tv
+  Tv,
+  Fingerprint,
+  Clock,
+  MapPin
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -47,6 +50,9 @@ const adminLinks: AdminLink[] = [
   { href: "/admin/clientes", label: "Clientes", icon: Users, table: "clients" },
   { href: "/admin/designers", label: "Designers", icon: Palette, table: "profiles", filter: { column: "role", value: "designer" } },
   { href: "/admin/codigos-designer", label: "Códigos de Designer", icon: KeyRound },
+  { href: "/admin/colaboradores", label: "Colaboradores (Ponto)", icon: Fingerprint, table: "profiles", filter: { column: "role", value: "colaborador" } },
+  { href: "/admin/ponto-config", label: "Config. de Ponto", icon: MapPin },
+  { href: "/admin/ponto-relatorios", label: "Relatórios de Ponto", icon: Clock },
   { href: "/admin/costura", label: "Fila de Costura", icon: Scissors, table: "orders", filter: { column: "production_stage", value: "costura" } },
   { href: "/telao", label: "Telão (TV)", icon: Tv },
   { href: "/admin/cores", label: "Cores Sublimadas", icon: Palette, table: "sublimated_color_samples" },

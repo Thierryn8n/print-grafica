@@ -416,6 +416,9 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
                         <span className="text-sm text-muted-foreground">Etapa atual:</span>
                         <Badge variant="secondary">{getStageLabel(order.productionStage)}</Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        Ao repassar a etapa, o status do cliente é atualizado automaticamente no link de acompanhamento.
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {order.productionStage === 'design1' && (
                           <Button
@@ -425,7 +428,7 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
                             onClick={() => passOrderTo(order.id, 'design2')}
                           >
                             <ArrowRightCircle className="h-4 w-4" />
-                            Repassar p/ Designer 2
+                            Repassar p/ Exportação (Designer 2)
                           </Button>
                         )}
                         {order.productionStage !== 'costura' && order.productionStage !== 'concluido' && (

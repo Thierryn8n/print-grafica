@@ -477,6 +477,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const fromStage = existing.productionStage || 'design1'
     const now = new Date().toISOString()
 
+    // Status do cliente atualizado AUTOMATICAMENTE conforme o pedido avança entre etapas/designers.
+    // design1 = criação da arte | design2 = exportação | costura = produção | concluido = manual (finalizado)
+    const autoStatus = STAGE_TO_STATUS[toStage]
+
     const stageEntry: StageHistoryEntry = {
       from: fromStage,
       to: toStage,
@@ -500,6 +504,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const merged: Order = {
       ...existing,
       productionStage: toStage,
+      status: autoStatus ?? existing.status,
       stageHistory: newStageHistory,
       sentToCosturaAt: toStage === 'costura' ? now : existing.sentToCosturaAt,
       designerId: targetDesignerId !== undefined ? targetDesignerId : existing.designerId,
@@ -512,7 +517,9 @@ export const useAppStore = create<AppState>()((set, get) => ({
       production_stage: toStage,
       stage_history: newStageHistory,
       metadata: rowMeta(merged),
+      updated_at: now,
     }
+    if (autoStatus) updateRow.status = autoStatus
     if (toStage === 'costura') updateRow.sent_to_costura_at = now
     if (targetDesignerId !== undefined) updateRow.designer_id = targetDesignerId
 
@@ -707,6 +714,15 @@ export function getPriorityLabel(priority: Priority): string {
     'urgente': 'Urgente'
   }
   return labels[priority]
+}
+
+// Mapeia a etapa de produção (repasse entre designers) para o status que o CLIENTE vê.
+// O status muda sozinho conforme o pedido avança; 'concluido' NÃO entra aqui pois
+// "Finalizado" é definido manualmente pelo admin (quando o cliente pode buscar).
+export const STAGE_TO_STATUS: Partial<Record<ProductionStage, OrderStatus>> = {
+  design1: 'em-criacao', // arte sendo criada pelo designer
+  design2: 'mockup-pronto', // repassado para exportação (vetorização / molde / arquivo final)
+  costura: 'enviado-producao', // foi para as costuras / produção
 }
 
 export function getStageLabel(stage: ProductionStage): string {

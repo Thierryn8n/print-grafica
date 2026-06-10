@@ -33,5 +33,5 @@ export default async function AcompanharPage({
     )
   }
 
-  return <TrackingView order={order} />
+  return <TrackingView order={order} token={token} />
 }

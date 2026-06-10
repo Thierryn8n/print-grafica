@@ -1,6 +1,8 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import { getTrackingStep, TRACKING_ORDER, TRACKING_STEPS, PRIORITY_LABEL } from "@/lib/order-tracking"
+import { createClient } from "@/lib/supabase/client"
 import { CheckCircle2, Circle, Package, Phone, Calendar, Hash, AlertTriangle } from "lucide-react"
 
 type TrackingOrder = {
@@ -32,7 +34,39 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
 }
 
-export function TrackingView({ order }: { order: TrackingOrder }) {
+export function TrackingView({ order: initialOrder, token }: { order: TrackingOrder; token: string }) {
+  const [order, setOrder] = useState<TrackingOrder>(initialOrder)
+  const [justUpdated, setJustUpdated] = useState(false)
+  const prevStatus = useRef(initialOrder.status)
+
+  // Atualização automática: re-busca o status periodicamente para o cliente
+  // ver o pedido avançar sozinho (arte → exportação → produção) sem recarregar.
+  useEffect(() => {
+    const supabase = createClient()
+    let active = true
+
+    async function refresh() {
+      const { data } = await supabase.rpc("get_order_tracking", { p_token: token })
+      const next = Array.isArray(data) ? data[0] : data
+      if (!active || !next) return
+      setOrder(next)
+      if (next.status !== prevStatus.current) {
+        prevStatus.current = next.status
+        setJustUpdated(true)
+        setTimeout(() => active && setJustUpdated(false), 4000)
+      }
+    }
+
+    const interval = setInterval(refresh, 20000)
+    const onFocus = () => refresh()
+    window.addEventListener("focus", onFocus)
+    return () => {
+      active = false
+      clearInterval(interval)
+      window.removeEventListener("focus", onFocus)
+    }
+  }, [token])
+
   const step = getTrackingStep(order.status)
   const StepIcon = step.icon
 
@@ -65,12 +99,24 @@ export function TrackingView({ order }: { order: TrackingOrder }) {
           </div>
           <div className="min-w-0">
             <h1 className="font-bold text-lg truncate">{order.company_name ?? "Acompanhe seu pedido"}</h1>
-            <p className="text-xs text-sidebar-foreground/70">Acompanhamento do pedido</p>
+            <p className="text-xs text-sidebar-foreground/70 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Acompanhamento em tempo real
+            </p>
           </div>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {justUpdated && (
+          <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+            <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+            <p className="text-sm font-medium text-foreground">
+              O status do seu pedido foi atualizado!
+            </p>
+          </div>
+        )}
+
         {/* Identificação do pedido */}
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">

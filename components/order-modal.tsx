@@ -42,11 +42,15 @@ import {
   Edit3,
   Scissors,
   ArrowRightCircle,
+  Receipt,
   X
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { generateReceiptPdf } from '@/lib/receipt'
+import { getMyCompany } from '@/lib/company'
+import { createClient } from '@/lib/supabase/client'
 
 interface OrderModalProps {
   order: Order
@@ -59,8 +63,51 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
   const [newComment, setNewComment] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [editedOrder, setEditedOrder] = useState(order)
+  const [generatingReceipt, setGeneratingReceipt] = useState(false)
 
   const designer = designers.find(d => d.id === order.designerId)
+
+  // Valores financeiros do pedido
+  const totalValue = order.totalPrice ?? 0
+  const downPaymentPercent = order.downPaymentPercent ?? 50
+  const downPayment = totalValue * (downPaymentPercent / 100)
+  const remaining = totalValue - downPayment
+
+  const handleGenerateReceipt = async () => {
+    setGeneratingReceipt(true)
+    try {
+      const company = await getMyCompany()
+      const supabase = createClient()
+      const { data: paymentRow } = await supabase
+        .from('orders')
+        .select('total_value, paid_value, payment_status, down_payment_percent')
+        .eq('id', order.id)
+        .maybeSingle()
+
+      const total = paymentRow?.total_value ?? totalValue
+      const pct = paymentRow?.down_payment_percent ?? downPaymentPercent
+      const paid = paymentRow?.paid_value ?? 0
+      await generateReceiptPdf({
+        company,
+        order: {
+          id: order.id,
+          clientName: order.clientName,
+          teamName: order.teamName,
+          phone: order.phone,
+          quantity: order.totalQuantity,
+          serviceLabel: getServiceLabel(order.serviceType),
+          modelLabel: getModelLabel(order.model),
+        },
+        total,
+        downPaymentPercent: pct,
+        paid,
+      })
+    } catch (err: any) {
+      console.log('[v0] erro ao gerar recibo:', err?.message)
+      alert('Não foi possível gerar o recibo.')
+    }
+    setGeneratingReceipt(false)
+  }
 
   const handleAddComment = () => {
     if (newComment.trim()) {
@@ -197,6 +244,43 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
                         <Calendar className="h-4 w-4" />
                         <strong>Prazo:</strong> {format(parseISO(order.deadline), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                       </p>
+                    </div>
+                  </div>
+
+                  {/* Pagamento */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Receipt className="h-4 w-4 text-primary" />
+                      Pagamento
+                    </h4>
+                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Valor total</span>
+                        <span className="text-2xl font-bold text-primary">
+                          {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Entrada ({downPaymentPercent}%)</span>
+                        <span className="font-semibold text-success">
+                          {downPayment.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Saldo restante</span>
+                        <span className="font-medium">
+                          {remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                      <Button
+                        onClick={handleGenerateReceipt}
+                        disabled={generatingReceipt}
+                        variant="outline"
+                        className="w-full gap-2"
+                      >
+                        <Receipt className="h-4 w-4" />
+                        {generatingReceipt ? 'Gerando...' : 'Gerar Recibo (PDF)'}
+                      </Button>
                     </div>
                   </div>
 

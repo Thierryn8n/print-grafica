@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { createClient } from '@/lib/supabase/client'
 
 export type Priority = 'baixa' | 'normal' | 'alta' | 'urgente'
+export type ProductionStage = 'design1' | 'design2' | 'costura' | 'concluido'
 export type ServiceType = 'camisa-time' | 'camisa-promocional' | 'abada' | 'uniforme' | 'colete' | 'bandeira' | 'banner' | 'arte-avulsa' | 'mockup' | 'outro'
 export type ModelType = 'manga-curta' | 'manga-longa' | 'gola-careca' | 'gola-alta' | 'gola-polo' | 'regata' | 'short' | 'conjunto'
 
@@ -81,6 +82,14 @@ export interface Checklist {
   clienteAprovou: boolean
 }
 
+export interface StageHistoryEntry {
+  from: ProductionStage
+  to: ProductionStage
+  by: string
+  byName: string
+  at: string
+}
+
 export interface Order {
   id: string
   clientName: string
@@ -96,6 +105,9 @@ export interface Order {
   colors: string
   designerId: string | null
   status: OrderStatus
+  productionStage: ProductionStage
+  stageHistory: StageHistoryEntry[]
+  sentToCosturaAt?: string | null
   createdAt: string
   updatedAt: string
   approvalLink?: string
@@ -153,6 +165,7 @@ interface AppState {
   updateOrder: (id: string, updates: Partial<Order>) => Promise<void>
   deleteOrder: (id: string) => Promise<void>
   moveOrder: (id: string, newStatus: OrderStatus) => Promise<void>
+  passOrderTo: (id: string, toStage: ProductionStage, targetDesignerId?: string | null) => Promise<void>
 
   // Comment actions
   addComment: (orderId: string, content: string) => Promise<void>
@@ -212,6 +225,9 @@ function rowToOrder(row: any): Order {
     colors,
     designerId: row.designer_id || null,
     status: (row.status || 'novo-pedido') as OrderStatus,
+    productionStage: (row.production_stage || 'design1') as ProductionStage,
+    stageHistory: (row.stage_history || []) as StageHistoryEntry[],
+    sentToCosturaAt: row.sent_to_costura_at || null,
     createdAt: row.created_at || new Date().toISOString(),
     updatedAt: row.updated_at || new Date().toISOString(),
     approvalLink: meta.approvalLink || (row.approval_token ? `/aprovacao/${row.id}` : undefined),
@@ -253,6 +269,9 @@ function orderToRow(order: Partial<Order>) {
   if (order.observations !== undefined) row.description = order.observations
   if (order.designerId !== undefined) row.designer_id = order.designerId
   if (order.status !== undefined) row.status = order.status
+  if (order.productionStage !== undefined) row.production_stage = order.productionStage
+  if (order.stageHistory !== undefined) row.stage_history = order.stageHistory
+  if (order.sentToCosturaAt !== undefined) row.sent_to_costura_at = order.sentToCosturaAt || null
   if (order.approvedAt !== undefined) row.approved_at = order.approvedAt || null
 
   // Rich, store-specific fields live in metadata
@@ -437,6 +456,65 @@ export const useAppStore = create<AppState>()((set, get) => ({
     if (error) console.log('[v0] moveOrder error:', error.message)
   },
 
+  passOrderTo: async (id, toStage, targetDesignerId) => {
+    const supabase = createClient()
+    const user = get().currentUser
+    const existing = get().orders.find((o) => o.id === id)
+    if (!existing) return
+
+    const fromStage = existing.productionStage || 'design1'
+    const now = new Date().toISOString()
+
+    const stageEntry: StageHistoryEntry = {
+      from: fromStage,
+      to: toStage,
+      by: user?.id || 'unknown',
+      byName: user?.name || 'Desconhecido',
+      at: now,
+    }
+
+    const newStageHistory = [...(existing.stageHistory || []), stageEntry]
+    const newHistory: HistoryEntry[] = [
+      ...existing.history,
+      {
+        id: `h${Date.now()}`,
+        action: `Repassado para ${getStageLabel(toStage)}`,
+        userId: user?.id || 'unknown',
+        userName: user?.name || 'Desconhecido',
+        createdAt: now,
+      },
+    ]
+
+    const merged: Order = {
+      ...existing,
+      productionStage: toStage,
+      stageHistory: newStageHistory,
+      sentToCosturaAt: toStage === 'costura' ? now : existing.sentToCosturaAt,
+      designerId: targetDesignerId !== undefined ? targetDesignerId : existing.designerId,
+      history: newHistory,
+      updatedAt: now,
+    }
+    set((state) => ({ orders: state.orders.map((o) => (o.id === id ? merged : o)) }))
+
+    const updateRow: Record<string, any> = {
+      production_stage: toStage,
+      stage_history: newStageHistory,
+      metadata: rowMeta(merged),
+    }
+    if (toStage === 'costura') updateRow.sent_to_costura_at = now
+    if (targetDesignerId !== undefined) updateRow.designer_id = targetDesignerId
+
+    const { error } = await supabase.from('orders').update(updateRow).eq('id', id)
+    if (error) console.log('[v0] passOrderTo error:', error.message)
+
+    await get().addNotification({
+      type: 'tarefa-atribuida',
+      title: `Pedido repassado para ${getStageLabel(toStage)}`,
+      message: `${existing.clientName} - ${existing.teamName}`,
+      orderId: id,
+    })
+  },
+
   addComment: async (orderId, content) => {
     const supabase = createClient()
     const user = get().currentUser
@@ -617,6 +695,16 @@ export function getPriorityLabel(priority: Priority): string {
     'urgente': 'Urgente'
   }
   return labels[priority]
+}
+
+export function getStageLabel(stage: ProductionStage): string {
+  const labels: Record<ProductionStage, string> = {
+    'design1': 'Designer 1',
+    'design2': 'Designer 2',
+    'costura': 'Costura',
+    'concluido': 'Concluído',
+  }
+  return labels[stage]
 }
 
 export function getModelLabel(model: ModelType): string {

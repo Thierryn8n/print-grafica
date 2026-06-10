@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Eye, EyeOff, Loader2, ArrowLeft, Shield, Palette, AlertTriangle } from "lucide-react"
+import { Eye, EyeOff, Loader2, ArrowLeft, Shield, Palette, AlertTriangle, KeyRound, CheckCircle2 } from "lucide-react"
 
 function CadastroContent() {
   const router = useRouter()
@@ -20,6 +20,9 @@ function CadastroContent() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [inviteCode, setInviteCode] = useState("")
+  const [codeValid, setCodeValid] = useState<boolean | null>(null)
+  const [validatingCode, setValidatingCode] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -58,6 +61,24 @@ function CadastroContent() {
     setCheckingAdmins(false)
   }
 
+  async function validateCode(code: string) {
+    const trimmed = code.trim().toUpperCase()
+    if (!trimmed) {
+      setCodeValid(null)
+      return
+    }
+    setValidatingCode(true)
+    const supabase = createClient()
+    const { data, error } = await supabase.rpc("validate_invite_code", { p_code: trimmed })
+    if (error) {
+      console.log("[v0] erro ao validar código:", error.message)
+      setCodeValid(false)
+    } else {
+      setCodeValid(data === true)
+    }
+    setValidatingCode(false)
+  }
+
   function formatPhone(value: string) {
     const numbers = value.replace(/\D/g, "")
     if (numbers.length <= 11) {
@@ -91,9 +112,27 @@ function CadastroContent() {
       return
     }
 
+    const normalizedCode = inviteCode.trim().toUpperCase()
+
+    if (!isAdmin) {
+      if (!normalizedCode) {
+        setError("Informe o código de convite fornecido pela gráfica")
+        setLoading(false)
+        return
+      }
+      const supabaseCheck = createClient()
+      const { data: valid } = await supabaseCheck.rpc("validate_invite_code", { p_code: normalizedCode })
+      if (valid !== true) {
+        setError("Código de convite inválido, expirado ou já utilizado")
+        setCodeValid(false)
+        setLoading(false)
+        return
+      }
+    }
+
     const supabase = createClient()
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -117,8 +156,18 @@ function CadastroContent() {
       return
     }
 
-    // O perfil é criado automaticamente pelo trigger handle_new_user,
-    // que também aplica a auto-aprovação do primeiro administrador.
+    // Designer com código de convite: resgata o código e já fica aprovado/vinculado
+    if (!isAdmin && normalizedCode && signUpData.user) {
+      const { error: redeemError } = await supabase.rpc("redeem_invite_code", {
+        p_code: normalizedCode,
+        p_user_id: signUpData.user.id,
+      })
+      if (redeemError) {
+        console.log("[v0] erro ao resgatar código:", redeemError.message)
+      }
+    }
+
+    // O perfil é criado automaticamente pelo trigger handle_new_user.
 
     router.push(`/auth/cadastro-sucesso?panel=${panel}`)
   }
@@ -191,8 +240,8 @@ function CadastroContent() {
             </div>
           )}
 
-          {/* Pending approval notice */}
-          {((isAdmin && canRegisterAdmin) || !isAdmin) && (
+          {/* Pending approval notice (admin) / invite info (designer) */}
+          {isAdmin && canRegisterAdmin && (
             <div className="mb-6 p-4 rounded-lg bg-warning/10 border border-warning/20 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
               <div>
@@ -200,9 +249,20 @@ function CadastroContent() {
                   Aprovação necessária
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {isAdmin 
-                    ? "Seu cadastro precisará ser aprovado por outro administrador antes de poder acessar o sistema."
-                    : "Seu cadastro precisará ser aprovado por um administrador antes de poder acessar o sistema."}
+                  Seu cadastro precisará ser aprovado por outro administrador antes de poder acessar o sistema.
+                </p>
+              </div>
+            </div>
+          )}
+          {!isAdmin && (
+            <div className="mb-6 p-4 rounded-lg bg-primary/10 border border-primary/20 flex items-start gap-3">
+              <KeyRound className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Cadastro por convite
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use o código de convite fornecido pela gráfica. Com ele, sua conta de designer é vinculada e liberada automaticamente.
                 </p>
               </div>
             </div>
@@ -210,6 +270,43 @@ function CadastroContent() {
 
           {/* Sign up form */}
           <form onSubmit={handleSignUp} className="space-y-4">
+            {!isAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="inviteCode">Código de convite</Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="inviteCode"
+                    type="text"
+                    placeholder="Ex: GN4F2K"
+                    value={inviteCode}
+                    onChange={(e) => {
+                      setInviteCode(e.target.value.toUpperCase())
+                      setCodeValid(null)
+                    }}
+                    onBlur={(e) => validateCode(e.target.value)}
+                    required
+                    className="h-12 pl-10 pr-10 uppercase tracking-widest font-medium"
+                  />
+                  {validatingCode && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                  {!validatingCode && codeValid === true && (
+                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-success" />
+                  )}
+                  {!validatingCode && codeValid === false && (
+                    <AlertTriangle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive" />
+                  )}
+                </div>
+                {codeValid === false && (
+                  <p className="text-xs text-destructive">Código inválido, expirado ou já utilizado.</p>
+                )}
+                {codeValid === true && (
+                  <p className="text-xs text-success">Código válido! Você será vinculado à gráfica.</p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="fullName">Nome completo</Label>
               <Input

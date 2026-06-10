@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Order, useAppStore, getStatusLabel, getServiceLabel, getPriorityLabel, getModelLabel, OrderStatus } from '@/lib/store'
+import { Order, useAppStore, getStatusLabel, getServiceLabel, getPriorityLabel, getModelLabel, getStageLabel, OrderStatus, ProductionStage } from '@/lib/store'
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,8 @@ import {
   Send,
   Trash2,
   Edit3,
+  Scissors,
+  ArrowRightCircle,
   X
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -53,7 +55,7 @@ interface OrderModalProps {
 }
 
 export function OrderModal({ order, open, onClose }: OrderModalProps) {
-  const { designers, updateOrder, addComment, updateChecklist, deleteOrder, moveOrder } = useAppStore()
+  const { designers, updateOrder, addComment, updateChecklist, deleteOrder, moveOrder, passOrderTo, currentUser } = useAppStore()
   const [newComment, setNewComment] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [editedOrder, setEditedOrder] = useState(order)
@@ -292,6 +294,60 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  {/* Production Stage / Repasse */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <ArrowRightCircle className="h-4 w-4 text-primary" />
+                      Etapa de Produção
+                    </h4>
+                    <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Etapa atual:</span>
+                        <Badge variant="secondary">{getStageLabel(order.productionStage)}</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {order.productionStage === 'design1' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => passOrderTo(order.id, 'design2')}
+                          >
+                            <ArrowRightCircle className="h-4 w-4" />
+                            Repassar p/ Designer 2
+                          </Button>
+                        )}
+                        {order.productionStage !== 'costura' && order.productionStage !== 'concluido' && (
+                          <Button
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => passOrderTo(order.id, 'costura')}
+                          >
+                            <Scissors className="h-4 w-4" />
+                            Enviar para Costura
+                          </Button>
+                        )}
+                        {order.productionStage === 'costura' && currentUser?.role === 'admin' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => passOrderTo(order.id, 'concluido')}
+                          >
+                            <CheckSquare className="h-4 w-4" />
+                            Marcar como Concluído
+                          </Button>
+                        )}
+                      </div>
+                      {order.sentToCosturaAt && (
+                        <p className="text-xs text-muted-foreground">
+                          Enviado para costura em{' '}
+                          {format(parseISO(order.sentToCosturaAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Actions */}

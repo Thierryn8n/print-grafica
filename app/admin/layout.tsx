@@ -20,7 +20,10 @@ import {
   X,
   UserCheck,
   Palette,
-  DollarSign
+  DollarSign,
+  KeyRound,
+  Scissors,
+  Tv
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -43,6 +46,9 @@ const adminLinks: AdminLink[] = [
   { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },
   { href: "/admin/clientes", label: "Clientes", icon: Users, table: "clients" },
   { href: "/admin/designers", label: "Designers", icon: Palette, table: "profiles", filter: { column: "role", value: "designer" } },
+  { href: "/admin/codigos-designer", label: "Códigos de Designer", icon: KeyRound },
+  { href: "/admin/costura", label: "Fila de Costura", icon: Scissors, table: "orders", filter: { column: "production_stage", value: "costura" } },
+  { href: "/telao", label: "Telão (TV)", icon: Tv },
   { href: "/admin/cores", label: "Cores Sublimadas", icon: Palette, table: "sublimated_color_samples" },
   { href: "/admin/tecidos", label: "Tecidos", icon: FolderOpen, table: "fabrics" },
   { href: "/admin/tipos-camisa", label: "Tipos de Camisa", icon: Palette, table: "shirt_types" },

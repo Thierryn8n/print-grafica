@@ -61,6 +61,13 @@ export interface FileAttachment {
   version?: number
 }
 
+export interface Player {
+  id: string
+  number: string
+  name: string
+  size?: string
+}
+
 export interface Checklist {
   logoConferida: boolean
   nomeConferido: boolean
@@ -101,6 +108,8 @@ export interface Order {
   checklist: Checklist
   artDimensions?: string
   colorMode?: 'RGB' | 'CMYK' | 'pronto-impressao'
+  hasNumbering?: boolean
+  players?: Player[]
 }
 
 export interface Designer {
@@ -209,6 +218,8 @@ function rowToOrder(row: any): Order {
     checklist: { ...defaultChecklist, ...(meta.checklist || {}) },
     artDimensions: meta.artDimensions,
     colorMode: meta.colorMode,
+    hasNumbering: meta.hasNumbering ?? false,
+    players: meta.players || [],
   }
 }
 
@@ -236,6 +247,7 @@ function orderToRow(order: Partial<Order>) {
   const metaKeys: (keyof Order)[] = [
     'model', 'observations', 'comments', 'history', 'files', 'checklist',
     'approvalLink', 'approvedBy', 'clientObservations', 'artDimensions', 'colorMode',
+    'hasNumbering', 'players',
   ]
   const meta: Record<string, any> = {}
   let hasMeta = false
@@ -538,6 +550,8 @@ function rowMeta(order: Order) {
     clientObservations: order.clientObservations,
     artDimensions: order.artDimensions,
     colorMode: order.colorMode,
+    hasNumbering: order.hasNumbering,
+    players: order.players,
   }
 }
 

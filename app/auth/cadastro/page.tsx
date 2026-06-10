@@ -16,6 +16,7 @@ function CadastroContent() {
   const panel = searchParams.get("panel") || "designer"
   
   const [fullName, setFullName] = useState("")
+  const [companyName, setCompanyName] = useState("")
   const [phone, setPhone] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -142,6 +143,7 @@ function CadastroContent() {
           full_name: fullName,
           phone: phone.replace(/\D/g, ""),
           role: isAdmin ? "admin" : "designer",
+          company_name: isAdmin ? companyName : undefined,
         },
       },
     })
@@ -168,6 +170,12 @@ function CadastroContent() {
     }
 
     // O perfil é criado automaticamente pelo trigger handle_new_user.
+
+    // Admin recém-criado vai direto para o onboarding da empresa
+    if (isAdmin) {
+      router.push("/onboarding")
+      return
+    }
 
     router.push(`/auth/cadastro-sucesso?panel=${panel}`)
   }
@@ -304,6 +312,22 @@ function CadastroContent() {
                 {codeValid === true && (
                   <p className="text-xs text-success">Código válido! Você será vinculado à gráfica.</p>
                 )}
+              </div>
+            )}
+
+            {isAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Nome da empresa / gráfica</Label>
+                <Input
+                  id="companyName"
+                  type="text"
+                  placeholder="Ex: GN Sublimais"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                  disabled={!canRegisterAdmin}
+                  className="h-12"
+                />
               </div>
             )}
 

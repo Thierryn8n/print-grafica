@@ -93,6 +93,7 @@ export function NewOrderForm() {
   const [fabrics, setFabrics] = useState<FabricOption[]>([])
   const [shirtTypes, setShirtTypes] = useState<ProductTypeOption[]>([])
   const [shortTypes, setShortTypes] = useState<ProductTypeOption[]>([])
+  const [downPaymentPercent, setDownPaymentPercent] = useState(50)
   const [pricing, setPricing] = useState({
     fabricId: '',
     shirtTypeId: '',
@@ -102,14 +103,18 @@ export function NewOrderForm() {
 
   useEffect(() => {
     async function loadCatalog() {
-      const [fabricRes, shirtRes, shortRes] = await Promise.all([
+      const [fabricRes, shirtRes, shortRes, settingsRes] = await Promise.all([
         supabase.from('fabrics').select('id, name, base_price_complete, base_price_shirt_only').eq('is_active', true).order('sort_order'),
         supabase.from('shirt_types').select('id, name, additional_price').eq('is_active', true).order('sort_order'),
         supabase.from('short_types').select('id, name, additional_price').eq('is_active', true).order('sort_order'),
+        supabase.from('company_settings').select('down_payment_percent').maybeSingle(),
       ])
       if (fabricRes.data) setFabrics(fabricRes.data as FabricOption[])
       if (shirtRes.data) setShirtTypes(shirtRes.data as ProductTypeOption[])
       if (shortRes.data) setShortTypes(shortRes.data as ProductTypeOption[])
+      if (settingsRes.data?.down_payment_percent != null) {
+        setDownPaymentPercent(Number(settingsRes.data.down_payment_percent))
+      }
     }
     loadCatalog()
   }, [])
@@ -177,6 +182,8 @@ export function NewOrderForm() {
   const unitPrice = basePrice + modelPrice
   const quantity = calculateTotal()
   const totalPrice = unitPrice * quantity
+  const downPayment = totalPrice * (downPaymentPercent / 100)
+  const remaining = totalPrice - downPayment
 
   const isTeamShirt = formData.serviceType === 'camisa-time'
   const showNumbering = isTeamShirt && formData.hasNumbering
@@ -235,6 +242,8 @@ export function NewOrderForm() {
       modelPrice,
       unitPrice,
       totalPrice: unitPrice * (total || formData.totalQuantity),
+      downPaymentPercent,
+      downPayment: unitPrice * (total || formData.totalQuantity) * (downPaymentPercent / 100),
       status: 'novo-pedido',
       files: []
     })
@@ -261,6 +270,28 @@ export function NewOrderForm() {
           <Save className="h-5 w-5" />
           Salvar Pedido
         </Button>
+      </div>
+
+      {/* Valor em destaque (sempre visível) */}
+      <div className="sticky top-2 z-20 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4 shadow-lg backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-primary">Valor do pedido</p>
+            <p className="text-3xl md:text-4xl font-bold text-primary leading-tight">
+              {currency(totalPrice)}
+            </p>
+          </div>
+          <div className="flex gap-6">
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Entrada ({downPaymentPercent}%)</p>
+              <p className="text-xl md:text-2xl font-bold text-success">{currency(downPayment)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Saldo</p>
+              <p className="text-xl md:text-2xl font-semibold text-foreground">{currency(remaining)}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -613,6 +644,14 @@ export function NewOrderForm() {
               <div className="flex items-center justify-between border-t border-border pt-2 text-base">
                 <span className="font-semibold">Total do pedido</span>
                 <span className="text-lg font-bold text-primary">{currency(totalPrice)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Entrada ({downPaymentPercent}%)</span>
+                <span className="font-semibold text-success">{currency(downPayment)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Saldo restante</span>
+                <span className="font-medium">{currency(remaining)}</span>
               </div>
             </div>
           </div>

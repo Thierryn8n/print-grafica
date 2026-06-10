@@ -128,6 +128,8 @@ export interface Order {
   modelPrice?: number
   unitPrice?: number
   totalPrice?: number
+  downPaymentPercent?: number
+  downPayment?: number
 }
 
 export interface Designer {
@@ -273,6 +275,14 @@ function orderToRow(order: Partial<Order>) {
   if (order.stageHistory !== undefined) row.stage_history = order.stageHistory
   if (order.sentToCosturaAt !== undefined) row.sent_to_costura_at = order.sentToCosturaAt || null
   if (order.approvedAt !== undefined) row.approved_at = order.approvedAt || null
+
+  // Valores de pagamento (colunas reais da tabela orders)
+  if (order.totalPrice !== undefined) row.total_value = order.totalPrice
+  if (order.downPaymentPercent !== undefined) row.down_payment_percent = order.downPaymentPercent
+  if (order.downPayment !== undefined) {
+    row.paid_value = 0 // entrada ainda não recebida no momento da criação
+    row.payment_status = 'pendente'
+  }
 
   // Rich, store-specific fields live in metadata
   const metaKeys: (keyof Order)[] = [

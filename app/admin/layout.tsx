@@ -25,20 +25,30 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const adminLinks = [
+type AdminLink = {
+  href: string
+  label: string
+  icon: typeof LayoutDashboard
+  /** Tabela do Supabase associada à página, para verificar se está vazia */
+  table?: string
+  /** Filtro opcional (coluna/valor) ao contar registros */
+  filter?: { column: string; value: string }
+}
+
+const adminLinks: AdminLink[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/kanban", label: "Kanban", icon: Columns3 },
   { href: "/admin/novo-pedido", label: "Novo Pedido", icon: FilePlus },
-  { href: "/admin/formularios", label: "Formulários", icon: UserCheck },
+  { href: "/admin/formularios", label: "Formulários", icon: UserCheck, table: "public_forms" },
   { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },
-  { href: "/admin/clientes", label: "Clientes", icon: Users },
-  { href: "/admin/designers", label: "Designers", icon: Palette },
-  { href: "/admin/cores", label: "Cores Sublimadas", icon: Palette },
-  { href: "/admin/tecidos", label: "Tecidos", icon: FolderOpen },
-  { href: "/admin/tipos-camisa", label: "Tipos de Camisa", icon: Palette },
-  { href: "/admin/tipos-short", label: "Tipos de Short", icon: FolderOpen },
-  { href: "/admin/valores", label: "Tabela de Valores", icon: DollarSign },
-  { href: "/admin/arquivos", label: "Arquivos", icon: FolderOpen },
+  { href: "/admin/clientes", label: "Clientes", icon: Users, table: "clients" },
+  { href: "/admin/designers", label: "Designers", icon: Palette, table: "profiles", filter: { column: "role", value: "designer" } },
+  { href: "/admin/cores", label: "Cores Sublimadas", icon: Palette, table: "sublimated_color_samples" },
+  { href: "/admin/tecidos", label: "Tecidos", icon: FolderOpen, table: "fabrics" },
+  { href: "/admin/tipos-camisa", label: "Tipos de Camisa", icon: Palette, table: "shirt_types" },
+  { href: "/admin/tipos-short", label: "Tipos de Short", icon: FolderOpen, table: "short_types" },
+  { href: "/admin/valores", label: "Tabela de Valores", icon: DollarSign, table: "fabrics" },
+  { href: "/admin/arquivos", label: "Arquivos", icon: FolderOpen, table: "order_files" },
   { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
@@ -51,6 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [emptyTables, setEmptyTables] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     checkAuth()
@@ -88,6 +99,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     setUnreadNotifications(count || 0)
     setLoading(false)
+
+    checkEmptyTables(supabase)
+  }
+
+  async function checkEmptyTables(supabase: ReturnType<typeof createClient>) {
+    const tablesToCheck = adminLinks.filter((link) => link.table)
+    const results = await Promise.all(
+      tablesToCheck.map(async (link) => {
+        let query = supabase
+          .from(link.table as string)
+          .select("id", { count: "exact", head: true })
+        if (link.filter) {
+          query = query.eq(link.filter.column, link.filter.value)
+        }
+        const { count, error } = await query
+        return { href: link.href, empty: !error && (count || 0) === 0 }
+      })
+    )
+
+    const map: Record<string, boolean> = {}
+    for (const result of results) {
+      map[result.href] = result.empty
+    }
+    setEmptyTables(map)
   }
 
   async function handleLogout() {
@@ -195,6 +230,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm font-medium">{link.label}</span>
+                {emptyTables[link.href] && (
+                  <span
+                    className="ml-auto flex-shrink-0 relative flex h-2.5 w-2.5"
+                    title="Esta tabela está vazia"
+                  >
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+                    <span className="sr-only">Tabela vazia</span>
+                  </span>
+                )}
                 {link.href === "/admin/notificacoes" && unreadNotifications > 0 && (
                   <span className="ml-auto w-5 h-5 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
                     {unreadNotifications > 9 ? "9+" : unreadNotifications}

@@ -39,7 +39,7 @@ const adminLinks: AdminLink[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/kanban", label: "Kanban", icon: Columns3 },
   { href: "/admin/novo-pedido", label: "Novo Pedido", icon: FilePlus },
-  { href: "/admin/formularios", label: "Formulários", icon: UserCheck, table: "public_forms" },
+  { href: "/admin/formularios", label: "Formulários", icon: UserCheck, table: "forms" },
   { href: "/admin/aprovacoes-usuarios", label: "Aprovações", icon: UserCheck },
   { href: "/admin/clientes", label: "Clientes", icon: Users, table: "clients" },
   { href: "/admin/designers", label: "Designers", icon: Palette, table: "profiles", filter: { column: "role", value: "designer" } },
@@ -109,12 +109,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       tablesToCheck.map(async (link) => {
         let query = supabase
           .from(link.table as string)
-          .select("id", { count: "exact", head: true })
+          .select("*", { count: "exact", head: true })
         if (link.filter) {
           query = query.eq(link.filter.column, link.filter.value)
         }
         const { count, error } = await query
-        return { href: link.href, empty: !error && (count || 0) === 0 }
+        if (error) {
+          console.log("[v0] erro ao contar tabela", link.table, error.message)
+          return { href: link.href, empty: false }
+        }
+        return { href: link.href, empty: (count || 0) === 0 }
       })
     )
 

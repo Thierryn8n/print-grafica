@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { getMyCompany, uploadCompanyLogo, type Company } from "@/lib/company"
+import { getMyCompany, uploadCompanyLogo, saveLogoOffer, type Company, type LogoOfferSettings } from "@/lib/company"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { Save, Building2, ImageIcon, MapPin, Percent, Loader2 } from "lucide-react"
+import { Save, Building2, ImageIcon, MapPin, Percent, Loader2, Sparkles, Tag } from "lucide-react"
 
 interface SystemSetting {
   id: string
@@ -33,6 +34,18 @@ export default function ConfiguracoesPage() {
   const [companySaved, setCompanySaved] = useState(false)
   const [geoLoading, setGeoLoading] = useState(false)
 
+  // Oferta de logo (pop-up no formulário do cliente)
+  const [logoOffer, setLogoOffer] = useState<LogoOfferSettings>({
+    logo_offer_enabled: false,
+    logo_offer_discount: 50,
+    logo_offer_min_pieces: 10,
+    logo_offer_title: "Adicione a logo da sua empresa!",
+    logo_offer_description:
+      "Estampe a logo da sua empresa nas peças e ganhe um desconto especial no seu pedido.",
+  })
+  const [savingOffer, setSavingOffer] = useState(false)
+  const [offerSaved, setOfferSaved] = useState(false)
+
   useEffect(() => {
     loadSettings()
     loadCompany()
@@ -44,8 +57,45 @@ export default function ConfiguracoesPage() {
       setCompany(c)
       setLogoPreview(c.logo_url)
     }
-    const { data: cs } = await supabase.from("company_settings").select("down_payment_percent").single()
+    const { data: cs } = await supabase
+      .from("company_settings")
+      .select(
+        "down_payment_percent, logo_offer_enabled, logo_offer_discount, logo_offer_min_pieces, logo_offer_title, logo_offer_description",
+      )
+      .single()
     if (cs?.down_payment_percent != null) setDownPct(String(cs.down_payment_percent))
+    if (cs) {
+      setLogoOffer({
+        logo_offer_enabled: cs.logo_offer_enabled ?? false,
+        logo_offer_discount: Number(cs.logo_offer_discount ?? 50),
+        logo_offer_min_pieces: Number(cs.logo_offer_min_pieces ?? 10),
+        logo_offer_title: cs.logo_offer_title ?? "Adicione a logo da sua empresa!",
+        logo_offer_description:
+          cs.logo_offer_description ??
+          "Estampe a logo da sua empresa nas peças e ganhe um desconto especial no seu pedido.",
+      })
+    }
+  }
+
+  function updateOffer(patch: Partial<LogoOfferSettings>) {
+    setLogoOffer((prev) => ({ ...prev, ...patch }))
+    setOfferSaved(false)
+  }
+
+  async function handleSaveOffer() {
+    if (!company) return
+    setSavingOffer(true)
+    try {
+      await saveLogoOffer(company.id, {
+        ...logoOffer,
+        logo_offer_discount: Math.max(0, Number(logoOffer.logo_offer_discount) || 0),
+        logo_offer_min_pieces: Math.max(1, Number(logoOffer.logo_offer_min_pieces) || 10),
+      })
+      setOfferSaved(true)
+    } catch (err: any) {
+      console.log("[v0] erro ao salvar oferta de logo:", err?.message)
+    }
+    setSavingOffer(false)
   }
 
   function updateCompany(field: keyof Company, value: any) {
@@ -283,6 +333,113 @@ export default function ConfiguracoesPage() {
                 Salvar dados da empresa
               </Button>
               {companySaved && <span className="text-sm text-success">Salvo com sucesso!</span>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Oferta de logo no formulário do cliente */}
+      {company && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Oferta de logo no pedido
+            </CardTitle>
+            <CardDescription>
+              Mostra um aviso chamativo para o cliente, durante o preenchimento do pedido, oferecendo estampar a
+              logo da empresa dele com desconto. Pedido mínimo de 10 peças (pode misturar camisas e calções).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between rounded-lg border border-border p-4">
+              <div className="flex flex-col gap-0.5">
+                <Label htmlFor="offer_enabled" className="text-base">
+                  Oferecer aos clientes
+                </Label>
+                <span className="text-sm text-muted-foreground">
+                  {logoOffer.logo_offer_enabled ? "Ativado — o aviso aparece no formulário" : "Desativado"}
+                </span>
+              </div>
+              <Switch
+                id="offer_enabled"
+                checked={logoOffer.logo_offer_enabled}
+                onCheckedChange={(checked) => updateOffer({ logo_offer_enabled: checked })}
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-primary" /> Valor do desconto (R$)
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={logoOffer.logo_offer_discount}
+                  onChange={(e) => updateOffer({ logo_offer_discount: Number(e.target.value) })}
+                  className="text-lg font-semibold"
+                />
+                <p className="text-xs text-muted-foreground">Desconto aplicado quando o cliente aceitar a oferta.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Pedido mínimo (peças)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={logoOffer.logo_offer_min_pieces}
+                  onChange={(e) => updateOffer({ logo_offer_min_pieces: Number(e.target.value) })}
+                  className="text-lg font-semibold"
+                />
+                <p className="text-xs text-muted-foreground">A oferta só aparece acima desta quantidade total.</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Título do aviso</Label>
+              <Input
+                value={logoOffer.logo_offer_title}
+                onChange={(e) => updateOffer({ logo_offer_title: e.target.value })}
+                placeholder="Adicione a logo da sua empresa!"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Texto do aviso</Label>
+              <Textarea
+                value={logoOffer.logo_offer_description}
+                onChange={(e) => updateOffer({ logo_offer_description: e.target.value })}
+                rows={2}
+                placeholder="Explique o benefício para o cliente"
+              />
+            </div>
+
+            {/* Pré-visualização */}
+            <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-4">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Pré-visualização do que o cliente vê</p>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">{logoOffer.logo_offer_title || "Título da oferta"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {logoOffer.logo_offer_description || "Descrição da oferta"}
+                  </p>
+                  <p className="text-sm font-semibold text-primary mt-1">
+                    Desconto de R$ {Number(logoOffer.logo_offer_discount || 0).toFixed(2)} · acima de{" "}
+                    {logoOffer.logo_offer_min_pieces} peças
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button onClick={handleSaveOffer} disabled={savingOffer} className="gap-2">
+                {savingOffer ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Salvar oferta
+              </Button>
+              {offerSaved && <span className="text-sm text-success">Salvo com sucesso!</span>}
             </div>
           </CardContent>
         </Card>

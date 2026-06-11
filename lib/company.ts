@@ -24,6 +24,36 @@ export type CompanySettings = {
   down_payment_percent: number
   currency: string
   receipt_footer: string | null
+  logo_offer_enabled: boolean
+  logo_offer_discount: number
+  logo_offer_min_pieces: number
+  logo_offer_title: string | null
+  logo_offer_description: string | null
+}
+
+export type LogoOfferSettings = {
+  logo_offer_enabled: boolean
+  logo_offer_discount: number
+  logo_offer_min_pieces: number
+  logo_offer_title: string
+  logo_offer_description: string
+}
+
+/** Salva a configuração da oferta de logo da empresa logada. */
+export async function saveLogoOffer(companyId: string, offer: LogoOfferSettings): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from("company_settings")
+    .update({
+      logo_offer_enabled: offer.logo_offer_enabled,
+      logo_offer_discount: offer.logo_offer_discount,
+      logo_offer_min_pieces: offer.logo_offer_min_pieces,
+      logo_offer_title: offer.logo_offer_title,
+      logo_offer_description: offer.logo_offer_description,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("company_id", companyId)
+  if (error) throw error
 }
 
 /** Retorna a empresa do usuário logado (ou null). */

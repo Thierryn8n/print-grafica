@@ -26,6 +26,11 @@ type Payload = {
   }
   items: ItemPayload[]
   generalNotes?: string
+  logoOffer?: {
+    accepted: boolean
+    discount?: number
+    label?: string
+  }
 }
 
 function sanitizePhone(v: string) {
@@ -167,6 +172,28 @@ export async function POST(request: Request) {
     })
     if (body.generalNotes) descriptionLines.push(`Observações gerais: ${body.generalNotes}`)
 
+    // Valida a oferta de logo no servidor (não confiar no cliente)
+    let logoAccepted = false
+    let logoDiscount = 0
+    let logoLabel = "Logo da empresa"
+    if (body.logoOffer?.accepted) {
+      const { data: settings } = await supabase
+        .from("company_settings")
+        .select("logo_offer_enabled, logo_offer_discount, logo_offer_min_pieces, logo_offer_title")
+        .eq("company_id", link.company_id)
+        .maybeSingle()
+
+      const minPieces = Number(settings?.logo_offer_min_pieces ?? 10)
+      if (settings?.logo_offer_enabled && totalQuantity >= minPieces) {
+        logoAccepted = true
+        logoDiscount = Number(settings.logo_offer_discount ?? 0)
+        logoLabel = settings.logo_offer_title || "Logo da empresa"
+        descriptionLines.push(
+          `★ Logo da empresa adicionada (desconto de R$ ${logoDiscount.toFixed(2)})`,
+        )
+      }
+    }
+
     const { data: order, error: orderErr } = await supabase
       .from("orders")
       .insert({
@@ -187,7 +214,14 @@ export async function POST(request: Request) {
         priority: "normal",
         company_id: link.company_id,
         created_by: link.created_by,
-        metadata: { source: "formulario-cliente", items: body.items, order_link_token: body.token },
+        metadata: {
+          source: "formulario-cliente",
+          items: body.items,
+          order_link_token: body.token,
+          logo_offer: logoAccepted
+            ? { accepted: true, discount: logoDiscount, label: logoLabel }
+            : { accepted: false },
+        },
       })
       .select("id, tracking_token, order_number")
       .single()

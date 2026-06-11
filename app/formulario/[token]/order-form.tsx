@@ -24,10 +24,24 @@ import {
   History,
   ShoppingBag,
   AlertCircle,
+  Sparkles,
+  X,
 } from "lucide-react"
 
 type CatalogItem = { id: string; name: string; description?: string | null; image_url?: string | null }
-type Catalog = { fabrics: CatalogItem[]; shirt_types: CatalogItem[]; short_types: CatalogItem[] }
+type LogoOffer = {
+  enabled: boolean
+  discount?: number
+  min_pieces?: number
+  title?: string
+  description?: string
+}
+type Catalog = {
+  fabrics: CatalogItem[]
+  shirt_types: CatalogItem[]
+  short_types: CatalogItem[]
+  logo_offer?: LogoOffer
+}
 
 type LinkInfo = {
   token: string
@@ -119,6 +133,11 @@ export function PublicOrderForm({ link }: { link: LinkInfo }) {
   })
   const [items, setItems] = useState<OrderItem[]>([emptyItem()])
 
+  // Oferta de logo configurada pela gráfica
+  const [wantsLogo, setWantsLogo] = useState(false)
+  const [showLogoPopup, setShowLogoPopup] = useState(false)
+  const [logoPopupDismissed, setLogoPopupDismissed] = useState(false)
+
   useEffect(() => {
     setHistory(loadHistory())
     // Preenche com último cliente salvo se o link não trouxe dados
@@ -147,6 +166,32 @@ export function PublicOrderForm({ link }: { link: LinkInfo }) {
     [items],
   )
 
+  const logoOffer = catalog.logo_offer
+  const offerMinPieces = logoOffer?.min_pieces ?? 10
+  const offerDiscount = Number(logoOffer?.discount ?? 0)
+  const offerEligible = Boolean(logoOffer?.enabled) && totalQuantity >= offerMinPieces
+
+  // Dispara o pop-up chamativo quando o cliente atinge o mínimo de peças
+  useEffect(() => {
+    if (offerEligible && !wantsLogo && !logoPopupDismissed) {
+      setShowLogoPopup(true)
+    }
+    // Se ficou abaixo do mínimo, cancela a escolha
+    if (!offerEligible && wantsLogo) {
+      setWantsLogo(false)
+    }
+  }, [offerEligible, wantsLogo, logoPopupDismissed])
+
+  function acceptLogoOffer() {
+    setWantsLogo(true)
+    setShowLogoPopup(false)
+  }
+
+  function dismissLogoOffer() {
+    setShowLogoPopup(false)
+    setLogoPopupDismissed(true)
+  }
+
   function updateItem(index: number, patch: Partial<OrderItem>) {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)))
   }
@@ -170,7 +215,15 @@ export function PublicOrderForm({ link }: { link: LinkInfo }) {
       const res = await fetch("/api/pedido-publico", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: link.token, client, items, generalNotes: client.notes }),
+        body: JSON.stringify({
+          token: link.token,
+          client,
+          items,
+          generalNotes: client.notes,
+          logoOffer: wantsLogo
+            ? { accepted: true, discount: offerDiscount, label: logoOffer?.title || "Logo da empresa" }
+            : { accepted: false },
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -239,6 +292,46 @@ export function PublicOrderForm({ link }: { link: LinkInfo }) {
 
   return (
     <div className="min-h-screen bg-background py-6 px-4">
+      {/* Pop-up chamativo da oferta de logo */}
+      {showLogoPopup && logoOffer?.enabled && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4">
+          <Card className="relative max-w-sm w-full p-6 text-center animate-in fade-in zoom-in duration-200">
+            <button
+              type="button"
+              onClick={dismissLogoOffer}
+              className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+              aria-label="Fechar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground text-balance mb-2">
+              {logoOffer.title || "Adicione a logo da sua empresa!"}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              {logoOffer.description ||
+                "Estampe a logo da sua empresa nas peças e ganhe um desconto especial."}
+            </p>
+            <div className="rounded-lg bg-primary/10 py-3 px-4 mb-5">
+              <p className="text-2xl font-bold text-primary">
+                R$ {offerDiscount.toFixed(2)} de desconto
+              </p>
+              <p className="text-xs text-muted-foreground">No seu pedido de {totalQuantity} peças</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button onClick={acceptLogoOffer} className="gap-2">
+                <Sparkles className="w-4 h-4" /> Sim, quero adicionar a logo!
+              </Button>
+              <Button variant="ghost" onClick={dismissLogoOffer}>
+                Agora não
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto">
         <header className="text-center mb-6">
           <p className="text-sm text-muted-foreground">{link.company_name || "Gráfica"}</p>
@@ -556,6 +649,47 @@ export function PublicOrderForm({ link }: { link: LinkInfo }) {
                 })}
               </div>
             </div>
+
+            {/* Oferta de logo na revisão */}
+            {offerEligible && (
+              <div
+                className={`rounded-lg border p-4 ${
+                  wantsLogo ? "border-primary bg-primary/5" : "border-dashed border-border"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground">
+                      {logoOffer?.title || "Logo da sua empresa"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Desconto de R$ {offerDiscount.toFixed(2)} ao adicionar a logo.
+                    </p>
+                    <div className="mt-2">
+                      {wantsLogo ? (
+                        <div className="flex items-center gap-2 text-sm text-primary font-medium">
+                          <CheckCircle2 className="w-4 h-4" /> Logo adicionada
+                          <button
+                            type="button"
+                            onClick={() => setWantsLogo(false)}
+                            className="ml-2 text-muted-foreground underline hover:text-foreground"
+                          >
+                            remover
+                          </button>
+                        </div>
+                      ) : (
+                        <Button size="sm" onClick={() => setWantsLogo(true)} className="gap-2">
+                          <Sparkles className="w-4 h-4" /> Adicionar logo com desconto
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="notes">Observações gerais</Label>

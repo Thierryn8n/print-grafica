@@ -91,7 +91,7 @@ const adminGroups: AdminGroup[] = [
     label: "Produção",
     icon: Factory,
     links: [
-      { href: "/admin/formularios", label: "Formulários", icon: UserCheck, table: "forms" },
+      { href: "/admin/formularios", label: "Formulários", icon: UserCheck, table: "order_links" },
       { href: "/admin/costura", label: "Fila de Costura", icon: Scissors, table: "orders", filter: { column: "production_stage", value: "costura" } },
       { href: "/telao", label: "Telão (TV)", icon: Tv },
       { href: "/admin/arquivos", label: "Arquivos", icon: FolderOpen, table: "order_files" },
@@ -114,6 +114,8 @@ const adminGroups: AdminGroup[] = [
     label: "Sistema",
     icon: Settings,
     links: [
+      { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageSquare },
+      { href: "/admin/whatsapp/relatorio", label: "Relatório IA", icon: BarChart3 },
       { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings },

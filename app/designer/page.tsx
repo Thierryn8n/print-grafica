@@ -44,10 +44,10 @@ export default function DesignerDashboardPage() {
     setLoading(false)
   }
 
-  const pendingOrders = orders.filter(o => o.status === "design")
-  const awaitingApproval = orders.filter(o => o.status === "aprovacao")
-  const inProduction = orders.filter(o => o.status === "producao")
-  const completed = orders.filter(o => o.status === "finalizado")
+  const pendingOrders = orders.filter(o => ["novo-pedido", "aguardando-info", "em-criacao"].includes(o.status))
+  const awaitingApproval = orders.filter(o => o.status === "enviado-aprovacao")
+  const inProduction = orders.filter(o => ["aprovado", "enviado-producao", "sublimacao"].includes(o.status))
+  const completed = orders.filter(o => ["finalizado", "entregue"].includes(o.status))
 
   if (loading) {
     return (

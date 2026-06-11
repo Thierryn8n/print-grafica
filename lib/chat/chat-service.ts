@@ -220,6 +220,76 @@ export class ChatService {
 
     return publicUrl
   }
+
+  // Buscar contatos disponíveis para iniciar conversa (designers + admins)
+  async getContacts(excludeUserId: string): Promise<{ id: string; full_name: string; role: string; avatar_url: string | null }[]> {
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .select('id, full_name, role, avatar_url')
+      .in('role', ['admin', 'designer'])
+      .eq('status', 'approved')
+      .neq('id', excludeUserId)
+      .order('full_name', { ascending: true })
+
+    if (error) throw error
+    return data || []
+  }
+
+  // Encontra uma conversa direta (sem pedido) entre dois usuários, ou cria uma nova
+  async getOrCreateDirectConversation(userId: string, otherId: string): Promise<Conversation> {
+    const { data: existing } = await this.supabase
+      .from('conversations')
+      .select('*')
+      .is('order_id', null)
+      .contains('participant_ids', `{${userId}}`)
+
+    const found = (existing || []).find(
+      (c: any) => c.participant_ids.includes(otherId) && c.participant_ids.length === 2,
+    )
+    if (found) {
+      const { data: participants } = await this.supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', (found as any).participant_ids)
+      return { ...found, participants: participants || [] }
+    }
+
+    return this.createConversation(null, [userId, otherId])
+  }
+
+  // Inscreve-se em novas mensagens de uma conversa (Supabase Realtime)
+  subscribeToMessages(conversationId: string, onInsert: (msg: Message) => void) {
+    const channel = this.supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => onInsert(payload.new as Message),
+      )
+      .subscribe()
+
+    return () => {
+      this.supabase.removeChannel(channel)
+    }
+  }
+
+  // Inscreve-se em mudanças nas conversas do usuário (para atualizar a lista)
+  subscribeToConversations(onChange: () => void) {
+    const channel = this.supabase
+      .channel('conversations-list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, onChange)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, onChange)
+      .subscribe()
+
+    return () => {
+      this.supabase.removeChannel(channel)
+    }
+  }
 }
 
 export const chatService = new ChatService()

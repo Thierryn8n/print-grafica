@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS orders (
   
   status TEXT NOT NULL DEFAULT 'novo-pedido' CHECK (status IN (
     'novo-pedido', 'aguardando-info', 'em-criacao', 'revisao-interna', 
-    'mockup-pronto', 'enviado-aprovacao', 'aprovado-cliente', 'ajustes-solicitados',
+    'mockup-pronto', 'enviado-aprovacao', 'aprovado', 'ajustes-solicitados',
     'arte-finalizada', 'enviado-producao', 'sublimacao', 'finalizado', 'entregue'
   )),
   

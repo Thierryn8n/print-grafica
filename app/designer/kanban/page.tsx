@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { OrderKanban } from "@/components/kanban/order-kanban"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,12 +32,12 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ColorAnalysisPanel } from "@/components/color/ColorAnalysisPanel"
 
-const COLUMNS: OrderStatus[] = ["design", "aprovacao", "producao", "finalizado"]
+const COLUMNS: OrderStatus[] = ["em-criacao", "enviado-aprovacao", "aprovado", "enviado-producao"]
 
 export default function DesignerKanbanPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeColumn, setActiveColumn] = useState<OrderStatus>("design")
+  const [activeColumn, setActiveColumn] = useState<OrderStatus>("em-criacao")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -60,20 +61,44 @@ export default function DesignerKanbanPage() {
     setLoading(false)
   }
 
+  async function moveOrder(order: Order, newStatus: OrderStatus) {
+    const supabase = createClient()
+
+    const updateData: Record<string, unknown> = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    }
+    // gera token de aprovação ao mover para aprovação
+    if (newStatus === "enviado-aprovacao" && !order.approval_token) {
+      updateData.approval_token = crypto.randomUUID()
+    }
+
+    const { error } = await supabase.from("orders").update(updateData).eq("id", order.id)
+
+    if (!error) {
+      await supabase.from("activity_logs").insert({
+        order_id: order.id,
+        action: "status_changed",
+        description: `Status alterado de ${ORDER_STATUS_LABELS[order.status]} para ${ORDER_STATUS_LABELS[newStatus]}`,
+      })
+      await loadData()
+    }
+  }
+
   async function moveToApproval(order: Order) {
     const supabase = createClient()
     
     const { error } = await supabase
       .from("orders")
       .update({ 
-        status: "aprovacao",
+        status: "enviado-aprovacao",
         approval_token: crypto.randomUUID(),
         updated_at: new Date().toISOString()
       })
       .eq("id", order.id)
 
     if (!error) {
-      await supabase.from("activity_log").insert({
+      await supabase.from("activity_logs").insert({
         order_id: order.id,
         action: "sent_to_approval",
         description: "Enviado para aprovação do cliente"
@@ -108,7 +133,7 @@ export default function DesignerKanbanPage() {
                   <Eye className="w-4 h-4 mr-2" />
                   Ver detalhes
                 </DropdownMenuItem>
-                {order.status === "design" && (
+                {order.status === "em-criacao" && (
                   <DropdownMenuItem onClick={() => moveToApproval(order)}>
                     <ChevronRight className="w-4 h-4 mr-2" />
                     Enviar para Aprovação
@@ -147,7 +172,8 @@ export default function DesignerKanbanPage() {
       <div>
         <h1 className="text-xl lg:text-2xl font-bold text-foreground">Meu Kanban</h1>
         <p className="text-sm text-muted-foreground">
-          Acompanhe seus pedidos
+          <span className="hidden lg:inline">Arraste seus pedidos entre as colunas para mudar o status</span>
+          <span className="lg:hidden">Toque em um pedido para ver detalhes</span>
         </p>
       </div>
 
@@ -198,30 +224,17 @@ export default function DesignerKanbanPage() {
         )}
       </div>
 
-      {/* Desktop: Multi-column */}
-      <div className="hidden lg:grid lg:grid-cols-4 gap-4">
-        {COLUMNS.map((status) => {
-          const columnOrders = getColumnOrders(status)
-          return (
-            <div key={status} className="flex flex-col">
-              <div className={`p-3 rounded-t-lg ${ORDER_STATUS_COLORS[status]}`}>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-white text-sm">
-                    {ORDER_STATUS_LABELS[status]}
-                  </h3>
-                  <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">
-                    {columnOrders.length}
-                  </span>
-                </div>
-              </div>
-              <div className="flex-1 bg-muted/30 rounded-b-lg p-2 space-y-2 min-h-[300px]">
-                {columnOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            </div>
-          )
-        })}
+      {/* Desktop: Multi-column com drag-and-drop */}
+      <div className="hidden lg:block">
+        <OrderKanban
+          orders={orders}
+          columns={COLUMNS}
+          onMove={(order, status) => moveOrder(order, status)}
+          onSelect={(order) => {
+            setSelectedOrder(order)
+            setSheetOpen(true)
+          }}
+        />
       </div>
 
       {/* Order Detail Sheet */}
@@ -272,7 +285,7 @@ export default function DesignerKanbanPage() {
                     </div>
                   )}
 
-                  {selectedOrder.approval_token && selectedOrder.status === "aprovacao" && (
+                  {selectedOrder.approval_token && selectedOrder.status === "enviado-aprovacao" && (
                     <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-xs text-muted-foreground mb-1">Link de Aprovação do Cliente</p>
                       <p className="text-xs break-all text-primary">
@@ -291,7 +304,7 @@ export default function DesignerKanbanPage() {
                   />
                 </div>
 
-                {selectedOrder.status === "design" && (
+                {selectedOrder.status === "em-criacao" && (
                   <div className="pt-4 border-t space-y-2">
                     <Button className="w-full" onClick={() => moveToApproval(selectedOrder)}>
                       <ChevronRight className="w-4 h-4 mr-2" />

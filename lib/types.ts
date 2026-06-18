@@ -1,7 +1,34 @@
 export type UserRole = 'admin' | 'designer' | 'client'
 export type UserStatus = 'pending' | 'approved' | 'rejected'
-export type OrderStatus = 'briefing' | 'design' | 'aprovacao' | 'producao' | 'finalizado'
+export type OrderStatus =
+  | 'novo-pedido'
+  | 'aguardando-info'
+  | 'em-criacao'
+  | 'revisao-interna'
+  | 'mockup-pronto'
+  | 'enviado-aprovacao'
+  | 'aprovado'
+  | 'ajustes-solicitados'
+  | 'arte-finalizada'
+  | 'enviado-producao'
+  | 'sublimacao'
+  | 'finalizado'
+  | 'entregue'
 export type OrderPriority = 'baixa' | 'media' | 'alta' | 'urgente'
+
+/** Ordem oficial do fluxo de produção (usada nas colunas do Kanban) */
+export const ORDER_STATUS_FLOW: OrderStatus[] = [
+  'novo-pedido',
+  'aguardando-info',
+  'em-criacao',
+  'mockup-pronto',
+  'enviado-aprovacao',
+  'aprovado',
+  'enviado-producao',
+  'sublimacao',
+  'finalizado',
+  'entregue',
+]
 
 export interface Profile {
   id: string
@@ -98,19 +125,35 @@ export interface SystemSettings {
 }
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  briefing: 'Briefing',
-  design: 'Em Design',
-  aprovacao: 'Aguardando Aprovação',
-  producao: 'Em Produção',
-  finalizado: 'Finalizado'
+  'novo-pedido': 'Orçamento',
+  'aguardando-info': 'Arte Pendente',
+  'em-criacao': 'Em Criação',
+  'revisao-interna': 'Revisão Interna',
+  'mockup-pronto': 'Exportação',
+  'enviado-aprovacao': 'Aguardando Aprovação',
+  'aprovado': 'Aprovado',
+  'ajustes-solicitados': 'Ajustes Solicitados',
+  'arte-finalizada': 'Arte Finalizada',
+  'enviado-producao': 'Em Produção',
+  'sublimacao': 'Sublimação',
+  'finalizado': 'Finalizado',
+  'entregue': 'Entregue',
 }
 
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
-  briefing: 'bg-blue-500',
-  design: 'bg-yellow-500',
-  aprovacao: 'bg-orange-500',
-  producao: 'bg-purple-500',
-  finalizado: 'bg-green-500'
+  'novo-pedido': 'bg-slate-500',
+  'aguardando-info': 'bg-amber-500',
+  'em-criacao': 'bg-blue-500',
+  'revisao-interna': 'bg-sky-500',
+  'mockup-pronto': 'bg-cyan-500',
+  'enviado-aprovacao': 'bg-orange-500',
+  'aprovado': 'bg-emerald-500',
+  'ajustes-solicitados': 'bg-rose-500',
+  'arte-finalizada': 'bg-lime-600',
+  'enviado-producao': 'bg-indigo-500',
+  'sublimacao': 'bg-pink-500',
+  'finalizado': 'bg-green-600',
+  'entregue': 'bg-teal-600',
 }
 
 export const PRIORITY_LABELS: Record<OrderPriority, string> = {

@@ -1,0 +1,110 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { normalizeZapiWebhook } from "@/lib/zapi"
+
+/**
+ * Webhook "Ao receber" e "Ao enviar" da Z-API.
+ *
+ * URL a configurar na Z-API (sem query params):
+ *   https://printflowstudio.vercel.app/api/whatsapp/webhook
+ *
+ * Segurança: a Z-API envia o Client-Token no header "Client-Token" em toda
+ * chamada. Validamos esse header contra ZAPI_CLIENT_TOKEN.
+ */
+export async function POST(req: NextRequest) {
+  // Valida o Client-Token enviado automaticamente pela Z-API no header
+  const clientToken = req.headers.get("client-token") || req.headers.get("Client-Token")
+  const expectedToken = process.env.ZAPI_CLIENT_TOKEN
+
+  if (expectedToken && clientToken !== expectedToken) {
+    console.log("[v0] webhook z-api: token inválido", clientToken?.slice(0, 8))
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
+  }
+
+  let payload: any
+  try {
+    payload = await req.json()
+  } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 })
+  }
+
+  const normalized = normalizeZapiWebhook(payload)
+  if (!normalized) {
+    // Evento de status, presença, conexão etc. — apenas confirmamos.
+    return NextResponse.json({ ok: true, ignored: true })
+  }
+
+  const supabase = createAdminClient()
+
+  // Resolve a empresa: usa ?company= ou a única empresa do banco (single-tenant).
+  let companyId = req.nextUrl.searchParams.get("company")
+  if (!companyId) {
+    const { data: companies } = await supabase.from("companies").select("id").limit(2)
+    if (companies && companies.length === 1) {
+      companyId = companies[0].id
+    }
+  }
+
+  if (!companyId) {
+    return NextResponse.json(
+      { error: "company_id não resolvido. Adicione ?company=ID na URL do webhook." },
+      { status: 400 },
+    )
+  }
+
+  // Upsert idempotente — a Z-API pode reenviar o mesmo evento.
+  const { error } = await supabase.from("whatsapp_messages").upsert(
+    {
+      company_id: companyId,
+      message_id: normalized.messageId,
+      chat_phone: normalized.chatPhone,
+      sender_name: normalized.senderName,
+      from_me: normalized.fromMe,
+      message_type: normalized.messageType,
+      body: normalized.body,
+      media_url: normalized.mediaUrl,
+      caption: normalized.caption,
+      raw: payload,
+      message_timestamp: normalized.messageTimestamp,
+    },
+    { onConflict: "company_id,message_id", ignoreDuplicates: true },
+  )
+
+  if (error) {
+    console.log("[v0] erro ao salvar mensagem whatsapp:", error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Disparar o agente IA apenas para mensagens RECEBIDAS (não enviadas por nós)
+  // e apenas para tipos que o agente consegue processar (texto e imagem)
+  if (!normalized.fromMe && (normalized.messageType === "text" || normalized.messageType === "image")) {
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL || "https://printflowstudio.vercel.app"
+
+    // Fire-and-forget: responde à Z-API imediatamente sem bloquear
+    fetch(`${appUrl}/api/whatsapp/agent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": process.env.INTERNAL_AGENT_SECRET || "",
+      },
+      body: JSON.stringify({
+        company_id: companyId,
+        phone: normalized.chatPhone,
+        message_text: normalized.body || normalized.caption || "",
+        message_type: normalized.messageType,
+        media_url: normalized.mediaUrl,
+        sender_name: normalized.senderName,
+      }),
+    }).catch((err) => {
+      console.log("[webhook] erro ao disparar agente:", err?.message)
+    })
+  }
+
+  return NextResponse.json({ ok: true })
+}
+
+// A Z-API faz GET de verificação ao salvar a URL.
+export async function GET() {
+  return NextResponse.json({ ok: true, service: "whatsapp-webhook" })
+}

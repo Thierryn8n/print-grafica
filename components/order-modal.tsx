@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Order, useAppStore, getStatusLabel, getServiceLabel, getPriorityLabel, getModelLabel, OrderStatus } from '@/lib/store'
+import { Order, useAppStore, getStatusLabel, getServiceLabel, getPriorityLabel, getModelLabel, getStageLabel, OrderStatus, ProductionStage } from '@/lib/store'
 import {
   Dialog,
   DialogContent,
@@ -40,11 +40,18 @@ import {
   Send,
   Trash2,
   Edit3,
+  Scissors,
+  ArrowRightCircle,
+  Receipt,
+  Check,
   X
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { generateReceiptPdf } from '@/lib/receipt'
+import { getMyCompany } from '@/lib/company'
+import { createClient } from '@/lib/supabase/client'
 
 interface OrderModalProps {
   order: Order
@@ -53,12 +60,71 @@ interface OrderModalProps {
 }
 
 export function OrderModal({ order, open, onClose }: OrderModalProps) {
-  const { designers, updateOrder, addComment, updateChecklist, deleteOrder, moveOrder } = useAppStore()
+  const { designers, updateOrder, addComment, updateChecklist, deleteOrder, moveOrder, passOrderTo, currentUser } = useAppStore()
   const [newComment, setNewComment] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [editedOrder, setEditedOrder] = useState(order)
+  const [generatingReceipt, setGeneratingReceipt] = useState(false)
 
   const designer = designers.find(d => d.id === order.designerId)
+
+  // Valores financeiros do pedido
+  const totalValue = order.totalPrice ?? 0
+  const downPaymentPercent = order.downPaymentPercent ?? 50
+  const downPayment = totalValue * (downPaymentPercent / 100)
+  const remaining = totalValue - downPayment
+
+  const handleGenerateReceipt = async () => {
+    setGeneratingReceipt(true)
+    try {
+      const company = await getMyCompany()
+      const supabase = createClient()
+      const { data: paymentRow } = await supabase
+        .from('orders')
+        .select('total_value, paid_value, payment_status, down_payment_percent')
+        .eq('id', order.id)
+        .maybeSingle()
+
+      const total = paymentRow?.total_value ?? totalValue
+      const pct = paymentRow?.down_payment_percent ?? downPaymentPercent
+      const paid = paymentRow?.paid_value ?? 0
+      await generateReceiptPdf({
+        company,
+        order: {
+          id: order.id,
+          clientName: order.clientName,
+          teamName: order.teamName,
+          phone: order.phone,
+          quantity: order.totalQuantity,
+          serviceLabel: getServiceLabel(order.serviceType),
+          modelLabel: getModelLabel(order.model),
+        },
+        total,
+        downPaymentPercent: pct,
+        paid,
+      })
+    } catch (err: any) {
+      console.log('[v0] erro ao gerar recibo:', err?.message)
+      alert('Não foi possível gerar o recibo.')
+    }
+    setGeneratingReceipt(false)
+  }
+
+  const [linkCopied, setLinkCopied] = useState(false)
+  const handleCopyTrackingLink = async () => {
+    if (!order.trackingToken) {
+      alert('Este pedido ainda não possui link de acompanhamento. Atualize a página.')
+      return
+    }
+    const url = `${window.location.origin}/acompanhar/${order.trackingToken}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2500)
+    } catch {
+      window.prompt('Copie o link de acompanhamento:', url)
+    }
+  }
 
   const handleAddComment = () => {
     if (newComment.trim()) {
@@ -198,6 +264,51 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
                     </div>
                   </div>
 
+                  {/* Pagamento */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Receipt className="h-4 w-4 text-primary" />
+                      Pagamento
+                    </h4>
+                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Valor total</span>
+                        <span className="text-2xl font-bold text-primary">
+                          {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Entrada ({downPaymentPercent}%)</span>
+                        <span className="font-semibold text-success">
+                          {downPayment.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Saldo restante</span>
+                        <span className="font-medium">
+                          {remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </div>
+                      <Button
+                        onClick={handleGenerateReceipt}
+                        disabled={generatingReceipt}
+                        variant="outline"
+                        className="w-full gap-2"
+                      >
+                        <Receipt className="h-4 w-4" />
+                        {generatingReceipt ? 'Gerando...' : 'Gerar Recibo (PDF)'}
+                      </Button>
+                      <Button
+                        onClick={handleCopyTrackingLink}
+                        variant="outline"
+                        className="w-full gap-2"
+                      >
+                        {linkCopied ? <Check className="h-4 w-4 text-success" /> : <Link2 className="h-4 w-4" />}
+                        {linkCopied ? 'Link copiado!' : 'Copiar link de acompanhamento'}
+                      </Button>
+                    </div>
+                  </div>
+
                   {/* Size Grid */}
                   <div className="space-y-3">
                     <h4 className="font-semibold">Grade de Tamanhos</h4>
@@ -292,6 +403,63 @@ export function OrderModal({ order, open, onClose }: OrderModalProps) {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  {/* Production Stage / Repasse */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <ArrowRightCircle className="h-4 w-4 text-primary" />
+                      Etapa de Produção
+                    </h4>
+                    <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Etapa atual:</span>
+                        <Badge variant="secondary">{getStageLabel(order.productionStage)}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Ao repassar a etapa, o status do cliente é atualizado automaticamente no link de acompanhamento.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {order.productionStage === 'design1' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => passOrderTo(order.id, 'design2')}
+                          >
+                            <ArrowRightCircle className="h-4 w-4" />
+                            Repassar p/ Exportação (Designer 2)
+                          </Button>
+                        )}
+                        {order.productionStage !== 'costura' && order.productionStage !== 'concluido' && (
+                          <Button
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => passOrderTo(order.id, 'costura')}
+                          >
+                            <Scissors className="h-4 w-4" />
+                            Enviar para Costura
+                          </Button>
+                        )}
+                        {order.productionStage === 'costura' && currentUser?.role === 'admin' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => passOrderTo(order.id, 'concluido')}
+                          >
+                            <CheckSquare className="h-4 w-4" />
+                            Marcar como Concluído
+                          </Button>
+                        )}
+                      </div>
+                      {order.sentToCosturaAt && (
+                        <p className="text-xs text-muted-foreground">
+                          Enviado para costura em{' '}
+                          {format(parseISO(order.sentToCosturaAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Actions */}

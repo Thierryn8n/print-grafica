@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAppStore, Priority, ServiceType, ModelType, SizeGrid } from '@/lib/store'
+import { useAppStore, Priority, ServiceType, ModelType, SizeGrid, Player } from '@/lib/store'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -26,7 +28,13 @@ import {
   MessageSquare,
   Upload,
   Save,
-  ArrowLeft
+  ArrowLeft,
+  Hash,
+  Plus,
+  Trash2,
+  Shirt,
+  DollarSign,
+  Layers
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -61,10 +69,56 @@ const priorities: { value: Priority; label: string; color: string }[] = [
   { value: 'urgente', label: 'Urgente', color: 'bg-red-500' },
 ]
 
+interface FabricOption {
+  id: string
+  name: string
+  base_price_complete: number
+  base_price_shirt_only: number
+}
+
+interface ProductTypeOption {
+  id: string
+  name: string
+  additional_price: number
+}
+
+const currency = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
 export function NewOrderForm() {
   const router = useRouter()
   const { addOrder, designers } = useAppStore()
-  
+  const supabase = createClient()
+
+  const [fabrics, setFabrics] = useState<FabricOption[]>([])
+  const [shirtTypes, setShirtTypes] = useState<ProductTypeOption[]>([])
+  const [shortTypes, setShortTypes] = useState<ProductTypeOption[]>([])
+  const [downPaymentPercent, setDownPaymentPercent] = useState(50)
+  const [pricing, setPricing] = useState({
+    fabricId: '',
+    shirtTypeId: '',
+    shortTypeId: '',
+    priceMode: 'complete' as 'complete' | 'shirt_only',
+  })
+
+  useEffect(() => {
+    async function loadCatalog() {
+      const [fabricRes, shirtRes, shortRes, settingsRes] = await Promise.all([
+        supabase.from('fabrics').select('id, name, base_price_complete, base_price_shirt_only').eq('is_active', true).order('sort_order'),
+        supabase.from('shirt_types').select('id, name, additional_price').eq('is_active', true).order('sort_order'),
+        supabase.from('short_types').select('id, name, additional_price').eq('is_active', true).order('sort_order'),
+        supabase.from('company_settings').select('down_payment_percent').maybeSingle(),
+      ])
+      if (fabricRes.data) setFabrics(fabricRes.data as FabricOption[])
+      if (shirtRes.data) setShirtTypes(shirtRes.data as ProductTypeOption[])
+      if (shortRes.data) setShortTypes(shortRes.data as ProductTypeOption[])
+      if (settingsRes.data?.down_payment_percent != null) {
+        setDownPaymentPercent(Number(settingsRes.data.down_payment_percent))
+      }
+    }
+    loadCatalog()
+  }, [])
+
   const [formData, setFormData] = useState({
     clientName: '',
     teamName: '',
@@ -77,6 +131,8 @@ export function NewOrderForm() {
     colors: '',
     observations: '',
     designerId: null as string | null,
+    hasNumbering: false,
+    players: [] as Player[],
     sizeGrid: {
       PP: 0,
       P: 0,
@@ -110,14 +166,84 @@ export function NewOrderForm() {
     return sizes.PP + sizes.P + sizes.M + sizes.G + sizes.GG + sizes.XG + sizes.XGG + sizes.infantil
   }
 
+  // ----- Cálculo de preço: tecido (base) + modelos (adicionais) -----
+  const selectedFabric = fabrics.find(f => f.id === pricing.fabricId)
+  const selectedShirt = shirtTypes.find(s => s.id === pricing.shirtTypeId)
+  const selectedShort = shortTypes.find(s => s.id === pricing.shortTypeId)
+
+  const basePrice = selectedFabric
+    ? (pricing.priceMode === 'shirt_only'
+        ? selectedFabric.base_price_shirt_only
+        : selectedFabric.base_price_complete)
+    : 0
+  const shirtAdditional = selectedShirt?.additional_price || 0
+  const shortAdditional = selectedShort?.additional_price || 0
+  const modelPrice = shirtAdditional + shortAdditional
+  const unitPrice = basePrice + modelPrice
+  const quantity = calculateTotal()
+  const totalPrice = unitPrice * quantity
+  const downPayment = totalPrice * (downPaymentPercent / 100)
+  const remaining = totalPrice - downPayment
+
+  const isTeamShirt = formData.serviceType === 'camisa-time'
+  const showNumbering = isTeamShirt && formData.hasNumbering
+
+  const addPlayer = () => {
+    setFormData(prev => ({
+      ...prev,
+      players: [
+        ...prev.players,
+        { id: `p${Date.now()}-${prev.players.length}`, number: '', name: '', size: '' },
+      ],
+    }))
+  }
+
+  const updatePlayer = (id: string, field: keyof Player, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      players: prev.players.map(p => (p.id === id ? { ...p, [field]: value } : p)),
+    }))
+  }
+
+  const removePlayer = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      players: prev.players.filter(p => p.id !== id),
+    }))
+  }
+
+  const toggleNumbering = (checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      hasNumbering: checked,
+      players: checked && prev.players.length === 0
+        ? [{ id: `p${Date.now()}`, number: '', name: '', size: '' }]
+        : prev.players,
+    }))
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
     const total = calculateTotal()
-    
+
+    const cleanedPlayers = showNumbering
+      ? formData.players.filter(p => p.number.trim() || p.name.trim())
+      : []
+
     addOrder({
       ...formData,
+      hasNumbering: showNumbering,
+      players: cleanedPlayers,
       totalQuantity: total || formData.totalQuantity,
+      fabricId: pricing.fabricId || null,
+      fabricName: selectedFabric?.name,
+      basePrice,
+      modelPrice,
+      unitPrice,
+      totalPrice: unitPrice * (total || formData.totalQuantity),
+      downPaymentPercent,
+      downPayment: unitPrice * (total || formData.totalQuantity) * (downPaymentPercent / 100),
       status: 'novo-pedido',
       files: []
     })
@@ -144,6 +270,28 @@ export function NewOrderForm() {
           <Save className="h-5 w-5" />
           Salvar Pedido
         </Button>
+      </div>
+
+      {/* Valor em destaque (sempre visível) */}
+      <div className="sticky top-2 z-20 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4 shadow-lg backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-primary">Valor do pedido</p>
+            <p className="text-3xl md:text-4xl font-bold text-primary leading-tight">
+              {currency(totalPrice)}
+            </p>
+          </div>
+          <div className="flex gap-6">
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Entrada ({downPaymentPercent}%)</p>
+              <p className="text-xl md:text-2xl font-bold text-success">{currency(downPayment)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Saldo</p>
+              <p className="text-xl md:text-2xl font-semibold text-foreground">{currency(remaining)}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -374,6 +522,244 @@ export function NewOrderForm() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tecido e Valores */}
+      <Card className="glass border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Tecido e Valores
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Tecido (valor base) */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                Tecido (valor base)
+              </Label>
+              <Select
+                value={pricing.fabricId}
+                onValueChange={(value) => setPricing(prev => ({ ...prev, fabricId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar tecido" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fabrics.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name} — {currency(pricing.priceMode === 'shirt_only' ? f.base_price_shirt_only : f.base_price_complete)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Modo de preço */}
+            <div className="space-y-2">
+              <Label>Composição</Label>
+              <Select
+                value={pricing.priceMode}
+                onValueChange={(value) => setPricing(prev => ({ ...prev, priceMode: value as 'complete' | 'shirt_only' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="complete">Conjunto completo</SelectItem>
+                  <SelectItem value="shirt_only">Somente camisa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Modelo de camisa (adicional) */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Shirt className="h-4 w-4 text-muted-foreground" />
+                Modelo de Camisa (adicional)
+              </Label>
+              <Select
+                value={pricing.shirtTypeId}
+                onValueChange={(value) => setPricing(prev => ({ ...prev, shirtTypeId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shirtTypes.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.additional_price > 0 ? `(+${currency(s.additional_price)})` : '(sem adicional)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Modelo de short (adicional) — apenas para conjunto */}
+          {pricing.priceMode === 'complete' && (
+            <div className="space-y-2 md:max-w-xs">
+              <Label className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                Modelo de Short (adicional)
+              </Label>
+              <Select
+                value={pricing.shortTypeId}
+                onValueChange={(value) => setPricing(prev => ({ ...prev, shortTypeId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar short" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shortTypes.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.additional_price > 0 ? `(+${currency(s.additional_price)})` : '(sem adicional)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Resumo do cálculo */}
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <div className="grid gap-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Tecido (base)</span>
+                <span className="font-medium">{currency(basePrice)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Adicional dos modelos</span>
+                <span className="font-medium">{currency(modelPrice)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-2">
+                <span className="text-muted-foreground">Valor por peça</span>
+                <span className="font-semibold">{currency(unitPrice)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Quantidade</span>
+                <span className="font-medium">{quantity}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-2 text-base">
+                <span className="font-semibold">Total do pedido</span>
+                <span className="text-lg font-bold text-primary">{currency(totalPrice)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Entrada ({downPaymentPercent}%)</span>
+                <span className="font-semibold text-success">{currency(downPayment)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Saldo restante</span>
+                <span className="font-medium">{currency(remaining)}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Numeração de Time (apenas Camisa de Time) */}
+      {isTeamShirt && (
+        <Card className="glass border-0 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4">
+              <CardTitle className="flex items-center gap-2">
+                <Hash className="h-5 w-5 text-primary" />
+                Numeração das Camisas
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="hasNumbering" className="text-sm text-muted-foreground cursor-pointer">
+                  Tem numeração?
+                </Label>
+                <Switch
+                  id="hasNumbering"
+                  checked={formData.hasNumbering}
+                  onCheckedChange={toggleNumbering}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          {showNumbering && (
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Informe o número e o nome de cada jogador que aparecerá na camisa.
+              </p>
+
+              {/* Cabeçalho das colunas (desktop) */}
+              <div className="hidden sm:grid grid-cols-[80px_1fr_120px_40px] gap-3 px-1">
+                <Label className="text-xs uppercase text-muted-foreground">Número</Label>
+                <Label className="text-xs uppercase text-muted-foreground">Nome do Jogador</Label>
+                <Label className="text-xs uppercase text-muted-foreground">Tamanho</Label>
+                <span className="sr-only">Ações</span>
+              </div>
+
+              <div className="space-y-3">
+                {formData.players.map((player, index) => (
+                  <div
+                    key={player.id}
+                    className="grid grid-cols-[64px_1fr_44px] sm:grid-cols-[80px_1fr_120px_40px] gap-3 items-center"
+                  >
+                    <div className="relative">
+                      <Hash className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        aria-label={`Número do jogador ${index + 1}`}
+                        placeholder="10"
+                        className="pl-7 text-center font-semibold"
+                        value={player.number}
+                        onChange={(e) => updatePlayer(player.id, 'number', e.target.value)}
+                      />
+                    </div>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        aria-label={`Nome do jogador ${index + 1}`}
+                        placeholder="Ex: Ronaldo"
+                        className="pl-10"
+                        value={player.name}
+                        onChange={(e) => updatePlayer(player.id, 'name', e.target.value)}
+                      />
+                    </div>
+                    <Select
+                      value={player.size || ''}
+                      onValueChange={(value) => updatePlayer(player.id, 'size', value)}
+                    >
+                      <SelectTrigger className="hidden sm:flex" aria-label={`Tamanho do jogador ${index + 1}`}>
+                        <SelectValue placeholder="Tam." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG', 'Infantil'] as const).map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => removePlayer(player.id)}
+                      aria-label={`Remover jogador ${index + 1}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <Button type="button" variant="outline" size="sm" className="gap-2" onClick={addPlayer}>
+                  <Plus className="h-4 w-4" />
+                  Adicionar Jogador
+                </Button>
+                <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Shirt className="h-4 w-4" />
+                  {formData.players.length} {formData.players.length === 1 ? 'camisa numerada' : 'camisas numeradas'}
+                </span>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Files Upload */}
       <Card className="glass border-0 shadow-lg">

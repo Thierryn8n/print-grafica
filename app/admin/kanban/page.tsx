@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { OrderKanban } from "@/components/kanban/order-kanban"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,13 +35,24 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import Link from "next/link"
 
-const COLUMNS: OrderStatus[] = ["briefing", "design", "aprovacao", "producao", "finalizado"]
+const COLUMNS: OrderStatus[] = [
+  "novo-pedido",
+  "aguardando-info",
+  "em-criacao",
+  "mockup-pronto",
+  "enviado-aprovacao",
+  "aprovado",
+  "enviado-producao",
+  "sublimacao",
+  "finalizado",
+  "entregue",
+]
 
 export default function KanbanPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [designers, setDesigners] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeColumn, setActiveColumn] = useState<OrderStatus>("briefing")
+  const [activeColumn, setActiveColumn] = useState<OrderStatus>("novo-pedido")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -76,7 +88,7 @@ export default function KanbanPage() {
     }
 
     // Generate approval token when moving to approval
-    if (newStatus === "aprovacao" && !order.approval_token) {
+    if (newStatus === "enviado-aprovacao" && !order.approval_token) {
       updateData.approval_token = crypto.randomUUID()
     }
 
@@ -87,7 +99,7 @@ export default function KanbanPage() {
 
     if (!error) {
       // Log activity
-      await supabase.from("activity_log").insert({
+      await supabase.from("activity_logs").insert({
         order_id: order.id,
         action: "status_changed",
         description: `Status alterado de ${ORDER_STATUS_LABELS[order.status]} para ${ORDER_STATUS_LABELS[newStatus]}`
@@ -191,7 +203,8 @@ export default function KanbanPage() {
         <div>
           <h1 className="text-xl lg:text-2xl font-bold text-foreground">Kanban</h1>
           <p className="text-sm text-muted-foreground">
-            Arraste os pedidos entre as colunas
+            <span className="hidden lg:inline">Arraste os pedidos entre as colunas para mudar o status</span>
+            <span className="lg:hidden">Toque em um pedido para ver detalhes e avançar</span>
           </p>
         </div>
         <Button asChild size="sm">
@@ -246,30 +259,18 @@ export default function KanbanPage() {
         )}
       </div>
 
-      {/* Desktop: Multi-column Kanban */}
-      <div className="hidden lg:grid lg:grid-cols-5 gap-4">
-        {COLUMNS.map((status) => {
-          const columnOrders = getColumnOrders(status)
-          return (
-            <div key={status} className="flex flex-col">
-              <div className={`p-3 rounded-t-lg ${ORDER_STATUS_COLORS[status]}`}>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-white text-sm">
-                    {ORDER_STATUS_LABELS[status]}
-                  </h3>
-                  <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">
-                    {columnOrders.length}
-                  </span>
-                </div>
-              </div>
-              <div className="flex-1 bg-muted/30 rounded-b-lg p-2 space-y-2 min-h-[300px]">
-                {columnOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            </div>
-          )
-        })}
+      {/* Desktop: Multi-column Kanban com drag-and-drop */}
+      <div className="hidden lg:block">
+        <OrderKanban
+          orders={orders}
+          columns={COLUMNS}
+          designers={designers}
+          onMove={(order, status) => moveOrder(order, status)}
+          onSelect={(order) => {
+            setSelectedOrder(order)
+            setSheetOpen(true)
+          }}
+        />
       </div>
 
       {/* Order Detail Sheet */}
@@ -334,7 +335,7 @@ export default function KanbanPage() {
                     </div>
                   )}
 
-                  {selectedOrder.approval_token && selectedOrder.status === "aprovacao" && (
+                  {selectedOrder.approval_token && selectedOrder.status === "enviado-aprovacao" && (
                     <div className="p-3 bg-primary/10 rounded-lg">
                       <p className="text-xs text-muted-foreground mb-1">Link de Aprovação</p>
                       <p className="text-xs break-all text-primary">
@@ -345,7 +346,7 @@ export default function KanbanPage() {
                 </div>
 
                 <div className="pt-4 border-t space-y-2">
-                  {selectedOrder.status !== "finalizado" && (
+                  {COLUMNS.indexOf(selectedOrder.status) < COLUMNS.length - 1 && (
                     <Button
                       className="w-full"
                       onClick={() => {

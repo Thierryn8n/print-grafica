@@ -19,6 +19,7 @@ interface ShortType {
   description: string | null
   image_url: string | null
   category: string
+  additional_price: number
   is_active: boolean
   sort_order: number
 }
@@ -35,6 +36,7 @@ export default function TiposShortPage() {
     name: "",
     description: "",
     category: "basic",
+    additional_price: "",
     is_active: true,
     sort_order: "0",
     image_url: ""
@@ -85,6 +87,7 @@ export default function TiposShortPage() {
       name: formData.name,
       description: formData.description,
       category: formData.category,
+      additional_price: parseFloat(formData.additional_price) || 0,
       is_active: formData.is_active,
       sort_order: parseInt(formData.sort_order),
       image_url: formData.image_url || null
@@ -114,6 +117,7 @@ export default function TiposShortPage() {
       name: short.name,
       description: short.description || "",
       category: short.category,
+      additional_price: short.additional_price?.toString() || "0",
       is_active: short.is_active,
       sort_order: short.sort_order.toString(),
       image_url: short.image_url || ""
@@ -127,6 +131,7 @@ export default function TiposShortPage() {
       name: "",
       description: "",
       category: "basic",
+      additional_price: "",
       is_active: true,
       sort_order: "0",
       image_url: ""
@@ -209,6 +214,19 @@ export default function TiposShortPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="additional_price">Valor Adicional (R$)</Label>
+                <Input
+                  id="additional_price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.additional_price}
+                  onChange={(e) => setFormData({ ...formData, additional_price: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="description">Descrição</Label>
                 <Textarea
                   id="description"
@@ -263,6 +281,7 @@ export default function TiposShortPage() {
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Descrição</TableHead>
+              <TableHead>Valor</TableHead>
               <TableHead>Ordem</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead>Ações</TableHead>
@@ -285,6 +304,7 @@ export default function TiposShortPage() {
                 <TableCell className="font-medium">{short.name}</TableCell>
                 <TableCell className="capitalize">{short.category}</TableCell>
                 <TableCell className="max-w-xs truncate">{short.description}</TableCell>
+                <TableCell>R$ {(short.additional_price || 0).toFixed(2)}</TableCell>
                 <TableCell>{short.sort_order}</TableCell>
                 <TableCell>
                   <Switch checked={short.is_active} disabled />

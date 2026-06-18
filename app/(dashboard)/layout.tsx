@@ -1,4 +1,5 @@
 import { Sidebar } from '@/components/sidebar'
+import { StoreHydrator } from '@/components/store-hydrator'
 
 export default function DashboardLayout({
   children,
@@ -7,6 +8,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
+      <StoreHydrator />
       <Sidebar />
       <main className="lg:pl-64 min-h-screen">
         <div className="p-4 lg:p-8 pt-16 lg:pt-8">

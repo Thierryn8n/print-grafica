@@ -30,7 +30,11 @@ import { cn } from '@/lib/utils'
 export default function AprovacaoPage() {
   const params = useParams()
   const orderId = params.id as string
-  const { orders, updateOrder, moveOrder, addNotification } = useAppStore()
+  const { orders, updateOrder, moveOrder, addNotification, hydrate, hydrated } = useAppStore()
+
+  useEffect(() => {
+    if (!hydrated) hydrate()
+  }, [hydrated, hydrate])
   
   const [order, setOrder] = useState(orders.find(o => o.id === orderId))
   const [clientName, setClientName] = useState('')

@@ -22,6 +22,7 @@ interface ShirtType {
   has_sleeves: boolean
   sleeve_type: string | null
   collar_type: string | null
+  additional_price: number
   is_active: boolean
   sort_order: number
 }
@@ -41,6 +42,7 @@ export default function TiposCamisaPage() {
     has_sleeves: true,
     sleeve_type: "short",
     collar_type: "round",
+    additional_price: "",
     is_active: true,
     sort_order: "0",
     image_url: ""
@@ -94,6 +96,7 @@ export default function TiposCamisaPage() {
       has_sleeves: formData.has_sleeves,
       sleeve_type: formData.has_sleeves ? formData.sleeve_type : null,
       collar_type: formData.collar_type,
+      additional_price: parseFloat(formData.additional_price) || 0,
       is_active: formData.is_active,
       sort_order: parseInt(formData.sort_order),
       image_url: formData.image_url || null
@@ -126,6 +129,7 @@ export default function TiposCamisaPage() {
       has_sleeves: shirt.has_sleeves,
       sleeve_type: shirt.sleeve_type || "short",
       collar_type: shirt.collar_type || "round",
+      additional_price: shirt.additional_price?.toString() || "0",
       is_active: shirt.is_active,
       sort_order: shirt.sort_order.toString(),
       image_url: shirt.image_url || ""
@@ -142,6 +146,7 @@ export default function TiposCamisaPage() {
       has_sleeves: true,
       sleeve_type: "short",
       collar_type: "round",
+      additional_price: "",
       is_active: true,
       sort_order: "0",
       image_url: ""
@@ -266,6 +271,19 @@ export default function TiposCamisaPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="additional_price">Valor Adicional (R$)</Label>
+                <Input
+                  id="additional_price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.additional_price}
+                  onChange={(e) => setFormData({ ...formData, additional_price: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label>Imagem</Label>
                 <div className="flex items-center gap-4">
                   {formData.image_url && (
@@ -319,6 +337,7 @@ export default function TiposCamisaPage() {
               <TableHead>Categoria</TableHead>
               <TableHead>Mangas</TableHead>
               <TableHead>Gola</TableHead>
+              <TableHead>Valor</TableHead>
               <TableHead>Ordem</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead>Ações</TableHead>
@@ -354,6 +373,7 @@ export default function TiposCamisaPage() {
                   {shirt.collar_type === 'none' && 'Sem gola'}
                   {shirt.collar_type === 'raglan' && 'Raglan'}
                 </TableCell>
+                <TableCell>R$ {(shirt.additional_price || 0).toFixed(2)}</TableCell>
                 <TableCell>{shirt.sort_order}</TableCell>
                 <TableCell>
                   <Switch checked={shirt.is_active} disabled />

@@ -45,6 +45,39 @@ export async function getInstanceStatus(): Promise<{ connected: boolean; status:
   }
 }
 
+/** Retorna o QR Code em base64 (data:image/png;base64,...) para escanear no WhatsApp */
+export async function getQrCode(): Promise<{ value: string } | null> {
+  const cfg = getZapiConfig()
+  if (!cfg) return null
+
+  try {
+    const res = await fetch(`${baseUrl(cfg)}/qr-code`, {
+      headers: { "Client-Token": cfg.clientToken },
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
+/** Desconecta o WhatsApp da instância */
+export async function disconnectInstance(): Promise<boolean> {
+  const cfg = getZapiConfig()
+  if (!cfg) return false
+
+  try {
+    const res = await fetch(`${baseUrl(cfg)}/disconnect`, {
+      method: "GET",
+      headers: { "Client-Token": cfg.clientToken },
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 /** Envia uma mensagem de texto via Z-API */
 export async function sendText(phone: string, message: string) {
   const cfg = getZapiConfig()

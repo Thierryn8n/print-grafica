@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import Image from "next/image"
 import {
   Card,
   CardContent,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import {
   Check,
   Copy,
@@ -17,45 +19,69 @@ import {
   WifiOff,
   Loader2,
   AlertCircle,
-  ExternalLink,
   RefreshCw,
+  Smartphone,
+  QrCode,
+  LogOut,
+  CheckCircle2,
   ChevronRight,
+  ExternalLink,
 } from "lucide-react"
 
-const INSTANCE_ID = process.env.NEXT_PUBLIC_ZAPI_INSTANCE_ID || "3F4CBDCCC65051ACB631AEDD4F2B6C38"
 const APP_URL = "https://printflowstudio-creative.vercel.app"
 
-type StatusData = {
+type QrData = {
+  qr: string | null
   connected: boolean
   status: string
-  phone?: string
-  instanceId?: string
+  phone: string | null
 }
 
-type CopyState = Record<string, boolean>
-
 export default function ConfigurarZAPIPage() {
-  const [status, setStatus] = useState<StatusData | null>(null)
-  const [loadingStatus, setLoadingStatus] = useState(false)
-  const [copied, setCopied] = useState<CopyState>({})
+  const [data, setData] = useState<QrData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [copied, setCopied] = useState<Record<string, boolean>>({})
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const webhookUrl = `${APP_URL}/api/whatsapp/webhook`
 
-  async function checkStatus() {
-    setLoadingStatus(true)
+  const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch("/api/whatsapp/status")
-      const data = await res.json()
-      setStatus(data)
+      const res = await fetch("/api/whatsapp/qrcode")
+      const json: QrData = await res.json()
+      setData(json)
+      // Se conectado, para o polling automático
+      if (json.connected && intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
     } catch {
-      setStatus({ connected: false, status: "Erro ao checar — verifique as credenciais" })
+      // mantém dados anteriores em caso de erro de rede
+    } finally {
+      setLoading(false)
     }
-    setLoadingStatus(false)
-  }
-
-  useEffect(() => {
-    checkStatus()
   }, [])
+
+  // Polling de 20s enquanto desconectado para detectar quando escanear o QR
+  useEffect(() => {
+    fetchStatus()
+    intervalRef.current = setInterval(fetchStatus, 20000)
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [fetchStatus])
+
+  async function handleDisconnect() {
+    setDisconnecting(true)
+    await fetch("/api/whatsapp/qrcode", { method: "DELETE" })
+    await fetchStatus()
+    // Reinicia o polling para exibir o novo QR
+    if (!intervalRef.current) {
+      intervalRef.current = setInterval(fetchStatus, 20000)
+    }
+    setDisconnecting(false)
+  }
 
   async function copyToClipboard(text: string, key: string) {
     await navigator.clipboard.writeText(text)
@@ -63,241 +89,243 @@ export default function ConfigurarZAPIPage() {
     setTimeout(() => setCopied((prev) => ({ ...prev, [key]: false })), 2000)
   }
 
-  const steps = [
-    {
-      number: 1,
-      title: "Acesse o painel da Z-API",
-      description: (
-        <span>
-          Vá em{" "}
-          <a
-            href="https://app.z-api.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline underline-offset-2 inline-flex items-center gap-1"
-          >
-            app.z-api.io <ExternalLink className="w-3 h-3" />
-          </a>
-          , clique em <strong>Instâncias Web</strong> e abra sua instância.
-        </span>
-      ),
-    },
-    {
-      number: 2,
-      title: `Clique na aba "Webhooks e configurações gerais"`,
-      description: "É a segunda aba no topo da tela da instância.",
-    },
-    {
-      number: 3,
-      title: `Cole a URL no campo "Ao receber"`,
-      description: "Este webhook captura todas as mensagens que chegam no seu WhatsApp.",
-      action: (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
-          <code className="flex-1 text-sm font-mono text-foreground break-all">{webhookUrl}</code>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 gap-1.5"
-            onClick={() => copyToClipboard(webhookUrl, "ao-receber")}
-          >
-            {copied["ao-receber"] ? (
-              <Check className="w-3.5 h-3.5 text-green-500" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-            {copied["ao-receber"] ? "Copiado!" : "Copiar"}
-          </Button>
-        </div>
-      ),
-    },
-    {
-      number: 4,
-      title: `Cole também no campo "Ao enviar" (opcional)`,
-      description:
-        "Permite registrar mensagens que você mesmo enviar pelo WhatsApp.",
-      action: (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
-          <code className="flex-1 text-sm font-mono text-foreground break-all">{webhookUrl}</code>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 gap-1.5"
-            onClick={() => copyToClipboard(webhookUrl, "ao-enviar")}
-          >
-            {copied["ao-enviar"] ? (
-              <Check className="w-3.5 h-3.5 text-green-500" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-            {copied["ao-enviar"] ? "Copiado!" : "Copiar"}
-          </Button>
-        </div>
-      ),
-    },
-    {
-      number: 5,
-      title: `Ative "Notificar as enviadas por mim também"`,
-      description:
-        "Liga o toggle para que mensagens enviadas por você também apareçam no sistema.",
-    },
-    {
-      number: 6,
-      title: `Clique em "Salvar" e pronto`,
-      description:
-        "Após salvar, toda mensagem recebida ou enviada no WhatsApp será registrada automaticamente no sistema.",
-    },
-  ]
+  const connected = data?.connected ?? false
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Configurar Z-API</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">WhatsApp</h1>
         <p className="text-muted-foreground mt-1">
-          Conecte sua instância do WhatsApp para receber e registrar mensagens automaticamente.
+          Conecte seu número para enviar e receber mensagens diretamente pelo sistema.
         </p>
       </div>
 
-      {/* Status da instância */}
+      {/* Card principal de conexão */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Status da instância</CardTitle>
-          <CardDescription>
-            ID: <code className="text-xs font-mono">{INSTANCE_ID}</code>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {loadingStatus ? (
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              ) : status?.connected ? (
-                <Wifi className="w-5 h-5 text-green-500" />
-              ) : (
-                <WifiOff className="w-5 h-5 text-destructive" />
-              )}
-              <div>
-                <p className="font-medium text-sm text-foreground">
-                  {loadingStatus
-                    ? "Verificando..."
-                    : status?.connected
-                    ? "Conectada"
-                    : "Desconectada ou Trial"}
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Smartphone className="w-4 h-4" />
+              Conexao do WhatsApp
+            </CardTitle>
+            <Badge
+              variant={connected ? "default" : "secondary"}
+              className={connected ? "bg-emerald-500 hover:bg-emerald-500 text-white" : ""}
+            >
+              {connected ? "Conectado" : "Desconectado"}
+            </Badge>
+          </div>
+          {data?.phone && (
+            <CardDescription>Numero conectado: {data.phone}</CardDescription>
+          )}
+        </CardHeader>
+
+        <CardContent>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Verificando conexao...</p>
+            </div>
+          ) : connected ? (
+            /* Estado: CONECTADO */
+            <div className="flex flex-col items-center py-8 gap-4">
+              <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-foreground text-lg">WhatsApp conectado!</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {data?.phone
+                    ? `Numero: ${data.phone}`
+                    : "Seu numero esta ativo e pronto para receber mensagens."}
                 </p>
-                {status && (
-                  <p className="text-xs text-muted-foreground">
-                    {status.phone ? `Número: ${status.phone}` : status.status}
-                  </p>
-                )}
+              </div>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={fetchStatus}
+                  className="gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Atualizar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  {disconnecting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <LogOut className="w-3.5 h-3.5" />
+                  )}
+                  Desconectar
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {status && (
-                <Badge variant={status.connected ? "default" : "destructive"} className="text-xs">
-                  {status.connected ? "CONECTADA" : "DESCONECTADA"}
-                </Badge>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={checkStatus}
-                disabled={loadingStatus}
-                className="gap-1.5"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loadingStatus ? "animate-spin" : ""}`} />
-                Testar
-              </Button>
-            </div>
-          </div>
+          ) : data?.qr ? (
+            /* Estado: QR CODE disponivel */
+            <div className="flex flex-col items-center gap-5">
+              <div className="rounded-xl border-2 border-border p-3 bg-white shadow-sm">
+                <Image
+                  src={data.qr}
+                  alt="QR Code para conectar WhatsApp"
+                  width={220}
+                  height={220}
+                  unoptimized
+                />
+              </div>
 
-          {!status?.connected && !loadingStatus && (
-            <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                A instância está em modo Trial ou desconectada. As mensagens só serão recebidas com
-                o WhatsApp conectado e a instância ativa. Confirme que o QR Code foi escaneado no
-                painel da Z-API.
-              </p>
+              <div className="text-center space-y-1 max-w-xs">
+                <p className="font-semibold text-foreground">Escaneie o QR Code</p>
+                <p className="text-sm text-muted-foreground">
+                  Abra o WhatsApp no celular → Aparelhos conectados → Conectar um aparelho
+                </p>
+              </div>
+
+              {/* Passos visuais */}
+              <div className="w-full rounded-lg border border-border bg-muted/30 p-4 space-y-2.5">
+                {[
+                  "Abra o WhatsApp no seu celular",
+                  "Toque nos 3 pontos (Android) ou \"Ajustes\" (iPhone)",
+                  "Selecione \"Aparelhos conectados\"",
+                  "Toque em \"Conectar um aparelho\"",
+                  "Aponte a camera para o QR Code acima",
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      {i + 1}
+                    </div>
+                    <p className="text-sm text-foreground">{step}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3 w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchStatus}
+                  className="gap-1.5 flex-1"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Ja escaniei — verificar
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Atualiza automaticamente a cada 20s
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2 w-full rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  A instancia esta em modo <strong>Trial</strong>. O QR Code expira em alguns
+                  minutos. Se expirar, clique em &quot;Ja escaniei&quot; para gerar um novo.
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Estado: sem QR (instância pode já estar conectada ou erro) */
+            <div className="flex flex-col items-center py-10 gap-4">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <QrCode className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-foreground">QR Code nao disponivel</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Status: {data?.status || "desconhecido"}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={fetchStatus} className="gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5" />
+                Tentar novamente
+              </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Passo a passo */}
+      {/* Webhook — configurar Z-API */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Como configurar o webhook</CardTitle>
+          <CardTitle className="text-base">Configurar Webhook na Z-API</CardTitle>
           <CardDescription>
-            Siga os passos abaixo para receber mensagens do WhatsApp automaticamente no sistema.
+            Para o agente funcionar, cole a URL abaixo no painel da Z-API.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-0">
-          {steps.map((step, index) => (
-            <div key={step.number} className="flex gap-4">
-              {/* Linha vertical */}
-              <div className="flex flex-col items-center">
-                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
-                  {step.number}
-                </div>
-                {index < steps.length - 1 && (
-                  <div className="w-px flex-1 bg-border my-1" />
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">
+              Campo &quot;Ao receber&quot; (obrigatorio)
+            </p>
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+              <code className="flex-1 text-xs font-mono text-foreground break-all">
+                {webhookUrl}
+              </code>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="shrink-0 h-7 px-2"
+                onClick={() => copyToClipboard(webhookUrl, "webhook")}
+              >
+                {copied["webhook"] ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2.5">
+            {[
+              { label: "Ao receber", required: true },
+              { label: "Ao enviar", required: false },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-2 text-sm">
+                <Wifi className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-foreground">{item.label}</span>
+                {item.required ? (
+                  <Badge variant="default" className="text-[10px] h-4 px-1.5">obrigatorio</Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5">opcional</Badge>
                 )}
               </div>
-              {/* Conteúdo */}
-              <div className={`flex-1 ${index < steps.length - 1 ? "pb-6" : "pb-0"}`}>
-                <p className="font-medium text-sm text-foreground">{step.title}</p>
-                <p className="text-sm text-muted-foreground mt-0.5">{step.description}</p>
-                {step.action}
-              </div>
+            ))}
+            <div className="flex items-center gap-2 text-sm">
+              <Wifi className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-foreground">Notificar as enviadas por mim tambem</span>
+              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">ativar toggle</Badge>
             </div>
-          ))}
-        </CardContent>
-      </Card>
+          </div>
 
-      {/* Referência das URLs */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">URLs da integração</CardTitle>
-          <CardDescription>Use estes endereços ao configurar a Z-API.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[
-            { label: "Ao receber (obrigatório)", url: webhookUrl, key: "url1" },
-            { label: "Ao enviar (opcional)", url: webhookUrl, key: "url2" },
-          ].map((item) => (
-            <div key={item.key}>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">{item.label}</p>
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
-                <code className="flex-1 text-xs font-mono text-foreground break-all">
-                  {item.url}
-                </code>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="shrink-0 h-7 px-2"
-                  onClick={() => copyToClipboard(item.url, item.key)}
-                >
-                  {copied[item.key] ? (
-                    <Check className="w-3.5 h-3.5 text-green-500" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          ))}
-          <p className="text-xs text-muted-foreground pt-1">
-            A segurança é feita via <strong>Client-Token</strong> que a Z-API envia automaticamente
-            no header de cada chamada — nenhum parâmetro extra precisa ser adicionado na URL.
-          </p>
+          <a
+            href="https://app.z-api.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-2 hover:opacity-80"
+          >
+            Abrir painel Z-API
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
         </CardContent>
       </Card>
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <ChevronRight className="w-4 h-4" />
         <span>
-          Após configurar, as mensagens aparecem em{" "}
+          Apos conectar, as mensagens aparecem em{" "}
           <a href="/admin/whatsapp" className="text-primary underline underline-offset-2">
-            WhatsApp &rarr; Conversas
+            Conversas
+          </a>
+          {" "}e o agente responde automaticamente em{" "}
+          <a href="/admin/whatsapp/agente" className="text-primary underline underline-offset-2">
+            Agente IA
           </a>
           .
         </span>

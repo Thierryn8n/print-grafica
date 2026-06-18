@@ -293,20 +293,11 @@ ${config.agent_instructions || "(nenhuma instrucao definida)"}`}
               </div>
             ))}
           </div>
-          <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
-            <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              Para funcionar, voce precisa adicionar a variavel <code className="font-mono">NVIDIA_API_KEY</code> nas
-              configuracoes de ambiente do projeto. Obtenha gratuitamente em{" "}
-              <a
-                href="https://build.nvidia.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                build.nvidia.com
-              </a>
-              .
+          <div className="mt-4 flex items-start gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-emerald-700 dark:text-emerald-400">
+              Modelo <code className="font-mono">meta/llama-3.2-11b-vision-instruct</code> (NVIDIA NIM) configurado e pronto.
+              Ative o agente acima e configure o webhook &quot;Ao receber&quot; na Z-API para comecar o atendimento automatico.
             </p>
           </div>
         </CardContent>

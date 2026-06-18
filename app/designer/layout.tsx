@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import type { Profile } from "@/lib/types"
 import { 
   LayoutDashboard, 
-  Columns3, 
+  Kanban,
   FolderOpen,
   Bell,
   Settings,
@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils"
 
 const designerLinks = [
   { href: "/designer", label: "Meus Pedidos", icon: LayoutDashboard },
-  { href: "/designer/kanban", label: "Kanban", icon: Columns3 },
+  { href: "/designer/kanban", label: "Kanban", icon: Kanban },
   { href: "/designer/chat", label: "Mensagens", icon: MessageSquare },
   { href: "/designer/arquivos", label: "Meus Arquivos", icon: FolderOpen },
   { href: "/designer/notificacoes", label: "Notificações", icon: Bell },

@@ -50,7 +50,7 @@ const adminGroups: AdminGroup[] = [
     icon: LayoutDashboard,
     links: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/kanban", label: "Kanban", icon: Columns3 },
+      { href: "/admin/kanban", label: "Kanban", icon: Kanban },
       { href: "/admin/chat", label: "Mensagens", icon: MessageSquare },
       { href: "/admin/novo-pedido", label: "Novo Pedido", icon: FilePlus },
     ],

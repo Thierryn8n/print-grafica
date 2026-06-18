@@ -22,6 +22,19 @@ import {
   MessageSquare,
   Bot,
   X,
+  FilePlus,
+  Contact,
+  Palette,
+  KeyRound,
+  Fingerprint,
+  MapPin,
+  Clock,
+  Factory,
+  Scissors,
+  Tv,
+  FolderOpen,
+  Boxes,
+  DollarSign,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"

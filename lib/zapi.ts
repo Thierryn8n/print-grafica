@@ -21,6 +21,30 @@ function baseUrl(cfg: ZapiConfig) {
   return `https://api.z-api.io/instances/${cfg.instanceId}/token/${cfg.token}`
 }
 
+/** Retorna o status da instância Z-API (conectada, desconectada, etc.) */
+export async function getInstanceStatus(): Promise<{ connected: boolean; status: string; phone?: string }> {
+  const cfg = getZapiConfig()
+  if (!cfg) return { connected: false, status: "não configurada" }
+
+  try {
+    const res = await fetch(`${baseUrl(cfg)}/status`, {
+      headers: { "Client-Token": cfg.clientToken },
+      next: { revalidate: 0 },
+    })
+    if (!res.ok) return { connected: false, status: `erro HTTP ${res.status}` }
+    const data = await res.json()
+    // Z-API retorna { value: "CONNECTED" | "DISCONNECTED" | ... }
+    const connected = data?.value === "CONNECTED" || data?.connected === true
+    return {
+      connected,
+      status: data?.value || (connected ? "conectada" : "desconectada"),
+      phone: data?.smartphoneConnected?.phoneNumber || data?.phone || undefined,
+    }
+  } catch (e: any) {
+    return { connected: false, status: e?.message || "erro" }
+  }
+}
+
 /** Envia uma mensagem de texto via Z-API */
 export async function sendText(phone: string, message: string) {
   const cfg = getZapiConfig()

@@ -115,6 +115,7 @@ const adminGroups: AdminGroup[] = [
     icon: Settings,
     links: [
       { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageSquare },
+      { href: "/admin/whatsapp/configurar", label: "Configurar Z-API", icon: MessageSquare },
       { href: "/admin/whatsapp/relatorio", label: "Relatório IA", icon: BarChart3 },
       { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },

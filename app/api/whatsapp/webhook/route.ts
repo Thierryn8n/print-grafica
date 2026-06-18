@@ -75,6 +75,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Disparar o agente IA apenas para mensagens RECEBIDAS (não enviadas por nós)
+  // e apenas para tipos que o agente consegue processar (texto e imagem)
+  if (!normalized.fromMe && (normalized.messageType === "text" || normalized.messageType === "image")) {
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL || "https://printflowstudio.vercel.app"
+
+    // Fire-and-forget: responde à Z-API imediatamente sem bloquear
+    fetch(`${appUrl}/api/whatsapp/agent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": process.env.INTERNAL_AGENT_SECRET || "",
+      },
+      body: JSON.stringify({
+        company_id: companyId,
+        phone: normalized.chatPhone,
+        message_text: normalized.body || normalized.caption || "",
+        message_type: normalized.messageType,
+        media_url: normalized.mediaUrl,
+        sender_name: normalized.senderName,
+      }),
+    }).catch((err) => {
+      console.log("[webhook] erro ao disparar agente:", err?.message)
+    })
+  }
+
   return NextResponse.json({ ok: true })
 }
 

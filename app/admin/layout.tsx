@@ -6,32 +6,22 @@ import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import type { Profile } from "@/lib/types"
-import { 
-  LayoutDashboard, 
-  Columns3, 
-  FilePlus, 
-  Users, 
-  FolderOpen,
-  Bell,
+import {
+  LayoutDashboard,
+  Package,
+  Users,
+  Kanban,
+  Link2,
+  UserCheck,
   BarChart3,
+  Bell,
   Settings,
+  ChevronDown,
   LogOut,
   Menu,
-  X,
-  UserCheck,
-  Palette,
-  DollarSign,
-  KeyRound,
-  Scissors,
-  Tv,
-  Fingerprint,
-  Clock,
-  MapPin,
   MessageSquare,
-  ChevronDown,
-  Contact,
-  Boxes,
-  Factory
+  Bot,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -115,8 +105,9 @@ const adminGroups: AdminGroup[] = [
     icon: Settings,
     links: [
       { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageSquare },
+      { href: "/admin/whatsapp/agente", label: "Agente IA", icon: Bot },
       { href: "/admin/whatsapp/configurar", label: "Configurar Z-API", icon: MessageSquare },
-      { href: "/admin/whatsapp/relatorio", label: "Relatório IA", icon: BarChart3 },
+      { href: "/admin/whatsapp/relatorio", label: "Relatorio IA", icon: BarChart3 },
       { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
       { href: "/admin/notificacoes", label: "Notificações", icon: Bell },
       { href: "/admin/configuracoes", label: "Configurações", icon: Settings },

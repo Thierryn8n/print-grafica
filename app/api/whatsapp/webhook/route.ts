@@ -6,7 +6,7 @@ import { normalizeZapiWebhook } from "@/lib/zapi"
  * Webhook "Ao receber" e "Ao enviar" da Z-API.
  *
  * URL a configurar na Z-API (sem query params):
- *   https://printflowstudio.vercel.app/api/whatsapp/webhook
+ *   https://printflowstudio-creative.vercel.app/api/whatsapp/webhook
  *
  * Segurança: a Z-API envia o Client-Token no header "Client-Token" em toda
  * chamada. Validamos esse header contra ZAPI_CLIENT_TOKEN.
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   // e apenas para tipos que o agente consegue processar (texto e imagem)
   if (!normalized.fromMe && (normalized.messageType === "text" || normalized.messageType === "image")) {
     const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || "https://printflowstudio.vercel.app"
+      process.env.NEXT_PUBLIC_APP_URL || "https://printflowstudio-creative.vercel.app"
 
     // Fire-and-forget: responde à Z-API imediatamente sem bloquear
     fetch(`${appUrl}/api/whatsapp/agent`, {

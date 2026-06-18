@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 
 const INSTANCE_ID = process.env.NEXT_PUBLIC_ZAPI_INSTANCE_ID || "3F4CBDCCC65051ACB631AEDD4F2B6C38"
-const APP_URL = "https://printflowstudio.vercel.app"
+const APP_URL = "https://printflowstudio-creative.vercel.app"
 
 type StatusData = {
   connected: boolean

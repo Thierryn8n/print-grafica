@@ -3,20 +3,21 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { normalizeZapiWebhook } from "@/lib/zapi"
 
 /**
- * Webhook "Ao receber" da Z-API.
+ * Webhook "Ao receber" e "Ao enviar" da Z-API.
  *
- * Configure na Z-API a URL:
- *   https://SEU_DOMINIO/api/whatsapp/webhook?secret=SEU_SEGREDO&company=COMPANY_ID
+ * URL a configurar na Z-API (sem query params):
+ *   https://printflowstudio.vercel.app/api/whatsapp/webhook
  *
- * - `secret` precisa bater com ZAPI_WEBHOOK_SECRET (proteção contra chamadas externas).
- * - `company` é opcional: se houver apenas uma empresa cadastrada, ela é usada
- *   automaticamente.
+ * Segurança: a Z-API envia o Client-Token no header "Client-Token" em toda
+ * chamada. Validamos esse header contra ZAPI_CLIENT_TOKEN.
  */
 export async function POST(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get("secret")
-  const expected = process.env.ZAPI_WEBHOOK_SECRET
+  // Valida o Client-Token enviado automaticamente pela Z-API no header
+  const clientToken = req.headers.get("client-token") || req.headers.get("Client-Token")
+  const expectedToken = process.env.ZAPI_CLIENT_TOKEN
 
-  if (!expected || secret !== expected) {
+  if (expectedToken && clientToken !== expectedToken) {
+    console.log("[v0] webhook z-api: token inválido", clientToken?.slice(0, 8))
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
   }
 
@@ -29,13 +30,13 @@ export async function POST(req: NextRequest) {
 
   const normalized = normalizeZapiWebhook(payload)
   if (!normalized) {
-    // Evento que não é mensagem (status, presença, etc.) — apenas confirmamos.
+    // Evento de status, presença, conexão etc. — apenas confirmamos.
     return NextResponse.json({ ok: true, ignored: true })
   }
 
   const supabase = createAdminClient()
 
-  // Resolve a empresa: usa o parâmetro ?company= ou a única empresa existente.
+  // Resolve a empresa: usa ?company= ou a única empresa do banco (single-tenant).
   let companyId = req.nextUrl.searchParams.get("company")
   if (!companyId) {
     const { data: companies } = await supabase.from("companies").select("id").limit(2)
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Upsert idempotente (a Z-API pode reenviar o mesmo evento).
+  // Upsert idempotente — a Z-API pode reenviar o mesmo evento.
   const { error } = await supabase.from("whatsapp_messages").upsert(
     {
       company_id: companyId,
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-// A Z-API pode fazer um GET de verificação ao salvar a URL.
+// A Z-API faz GET de verificação ao salvar a URL.
 export async function GET() {
   return NextResponse.json({ ok: true, service: "whatsapp-webhook" })
 }
